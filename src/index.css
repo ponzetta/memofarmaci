@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lora:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#F5F5F0] text-[#333333] font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+

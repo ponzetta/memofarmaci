@@ -1,0 +1,21 @@
+{
+  "name": "MemoFarmaci",
+  "short_name": "MemoFarmaci",
+  "description": "Un'applicazione per ricordare l'assunzione dei farmaci.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5A5A40",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "MemoFarmaci",
+  "description": "Un'applicazione per aiutare le persone anziane a ricordare di prendere le loro medicine.",
+  "requestFramePermissions": ["camera", "notifications"]
+}
