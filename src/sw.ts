@@ -50,3 +50,44 @@ self.addEventListener('message', event => {
     scheduleNotifications();
   }
 });
+
+// Gestisce le Web Push Notifications inviate dal server (funziona in background)
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  try {
+    const data = event.data.json() as {
+      title: string;
+      body: string;
+      icon?: string;
+      badge?: string;
+      tag?: string;
+    };
+    event.waitUntil(
+      self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: data.icon ?? '/icons/icon-192x192.png',
+        badge: data.badge ?? '/icons/icon-192x192.png',
+        tag: data.tag,
+        requireInteraction: true,
+      }),
+    );
+  } catch {
+    const text = event.data.text();
+    event.waitUntil(
+      self.registration.showNotification('💊 MemoFarmaci', { body: text }),
+    );
+  }
+});
+
+// Tap sulla notifica → apre/porta in primo piano l'app
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('/');
+    }),
+  );
+});

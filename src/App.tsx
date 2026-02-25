@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import Toast from './components/Toast';
 import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
 import { Plus, Bell, Home, FileHeart, CalendarPlus, CalendarClock } from 'lucide-react';
@@ -75,7 +76,11 @@ export default function App() {
   });
 
   const todaysSchedule: TodaysScheduleItem[] = activePlans.map(plan => {
-    const taken = intakeLog.some(log => log.medicationId === plan.medicationId && log.timestamp.startsWith(todayStr) && log.scheduleTime === plan.time);
+    const taken = intakeLog.some(log => {
+      const d = new Date(log.timestamp);
+      const logDateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+      return log.medicationId === plan.medicationId && logDateStr === todayStr && log.scheduleTime === plan.time;
+    });
     return {
       id: `${plan.id}-${todayStr}`,
       planId: plan.id,
@@ -85,6 +90,18 @@ export default function App() {
       taken,
     };
   });
+
+  // Push notifications in background (server-side scheduling)
+  const pushSchedule = useMemo(() =>
+    todaysSchedule
+      .filter(item => !item.taken)
+      .map(item => ({
+        id: item.id,
+        time: item.time,
+        name: medications.find(m => m.id === item.medicationId)?.name ?? 'Farmaco',
+      })),
+  [todaysSchedule, medications]);
+  usePushNotifications(pushSchedule);
 
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
