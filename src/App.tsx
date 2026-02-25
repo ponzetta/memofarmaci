@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
+import Toast from './components/Toast';
 import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
 import { Plus, Bell, Home, FileHeart, CalendarPlus, CalendarClock } from 'lucide-react';
 import AddMedication from './components/AddMedication';
@@ -46,45 +47,56 @@ export default function App() {
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   const [sideEffects, setSideEffects] = useLocalStorage<SideEffect[]>('sideEffects', []);
   const [intakeLog, setIntakeLog] = useLocalStorage<IntakeLog[]>('intakeLog', []);
+
+  // Calcola lo schedule ad ogni render per la massima affidabilità
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Usa componenti locali per evitare sfasamenti UTC (es. UTC+1 in Italia)
+  const todayStr = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+
+  const activePlans = medicationPlans.filter(plan => {
+    const start = new Date(plan.startDate);
+    start.setHours(0,0,0,0);
+    const end = new Date(plan.endDate);
+    end.setHours(0,0,0,0);
+
+    if (today < start || today > end) return false;
+    if (plan.frequency === 'daily') return true;
+    if (plan.frequency === 'alternate') {
+      const diffTime = Math.abs(today.getTime() - start.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays % 2 === 0;
+    }
+    return false;
+  });
+
+  const todaysSchedule: TodaysScheduleItem[] = activePlans.map(plan => {
+    const taken = intakeLog.some(log => {
+      const d = new Date(log.timestamp);
+      const logDateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+      return log.medicationId === plan.medicationId && logDateStr === todayStr && log.scheduleTime === plan.time;
+    });
+    return {
+      id: `${plan.id}-${todayStr}`,
+      planId: plan.id,
+      medicationId: plan.medicationId,
+      time: plan.time,
+      dosage: plan.dosage,
+      taken,
+    };
+  });
+
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
-
-  const todaysSchedule = useMemo((): TodaysScheduleItem[] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-
-    const activePlans = medicationPlans.filter(plan => {
-      const start = new Date(plan.startDate);
-      start.setHours(0,0,0,0);
-      const end = new Date(plan.endDate);
-      end.setHours(0,0,0,0);
-
-      if (today < start || today > end) return false;
-      if (plan.frequency === 'daily') return true;
-      if (plan.frequency === 'alternate') {
-        const diffTime = Math.abs(today.getTime() - start.getTime());
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays % 2 === 0;
-      }
-      return false;
-    });
-
-    return activePlans.map(plan => {
-      const taken = intakeLog.some(log => log.medicationId === plan.medicationId && log.timestamp.startsWith(todayStr) && log.scheduleTime === plan.time);
-      return {
-        id: `${plan.id}-${todayStr}`,
-        planId: plan.id,
-        medicationId: plan.medicationId,
-        time: plan.time,
-        dosage: plan.dosage,
-        taken,
-      };
-    });
-  }, [medicationPlans, intakeLog]);
+  const [toastMessage, setToastMessage] = useState('');
 
   const todaysEvents = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const _now = new Date();
+    const todayStr = [_now.getFullYear(), String(_now.getMonth() + 1).padStart(2, '0'), String(_now.getDate()).padStart(2, '0')].join('-');
     const medicationEvents = todaysSchedule.map(item => ({ ...item, type: 'medication' as const }));
     const appointmentEvents = appointments
       .filter(app => app.dateTime.startsWith(todayStr))
@@ -200,6 +212,7 @@ export default function App() {
         scheduleTime: itemToLog.time,
       };
       setIntakeLog(prevLog => [...prevLog, newLogEntry]);
+      setToastMessage('Assunzione del farmaco registrata, Grazie');
     }
   };
 
@@ -217,6 +230,7 @@ export default function App() {
 
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
+      {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
       {alarmingSchedule && alarmingMedication && <AlarmModal scheduleItem={alarmingSchedule} medication={alarmingMedication} onConfirm={() => { handleToggleTaken(alarmingSchedule.id); setAlarmingScheduleId(null); }} />}
       {viewingSchedule && viewingMedication && <MedicationDetailModal scheduleItem={viewingSchedule} medication={viewingMedication} onClose={() => setViewingScheduleId(null)} onConfirm={() => { handleToggleTaken(viewingSchedule.id); setViewingScheduleId(null); }} />}
       
@@ -226,7 +240,14 @@ export default function App() {
       </header>
 
       <main className="flex-grow p-6 overflow-y-auto">
-        <h2 className="text-2xl font-serif mb-4 text-center">I tuoi impegni di oggi</h2>
+        {currentView === 'home' && (
+          <button 
+            onClick={() => setCurrentView('addMedication')} 
+            className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4">
+            <Plus size={28} />
+            Aggiungi Farmaco
+          </button>
+      )}
         <div className="space-y-4">
           {todaysEvents.map(item => {
             if (item.type === 'medication' && !item.taken) {
@@ -287,7 +308,6 @@ export default function App() {
         <button onClick={() => setCurrentView('home')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={32} /></button>
         <button onClick={() => setCurrentView('appointments')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={32} /></button>
         <button onClick={() => setCurrentView('history')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={32} /></button>
-        <button onClick={() => setCurrentView('addMedication')} className="p-6 bg-[#5A5A40] text-white rounded-full shadow-lg -mt-16 transform hover:scale-110 transition-transform"><Plus size={40} /></button>
         <button onClick={() => setCurrentView('sideEffects')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={32} /></button>
         <button onClick={() => setCurrentView('planManager')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Bell size={32} /></button>
       </footer>
