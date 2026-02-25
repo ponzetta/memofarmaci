@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import useLocalStorage from './hooks/useLocalStorage';
 import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
 import { Plus, Bell, Home, FileHeart, CalendarPlus, CalendarClock } from 'lucide-react';
 import AddMedication from './components/AddMedication';
@@ -38,13 +39,13 @@ const MOCK_PLANS: MedicationPlan[] = [
 ];
 
 export default function App() {
-  const [medications, setMedications] = useState<Medication[]>(MOCK_MEDICATIONS);
-  const [medicationPlans, setMedicationPlans] = useState<MedicationPlan[]>(MOCK_PLANS);
+  const [medications, setMedications] = useLocalStorage<Medication[]>('medications', MOCK_MEDICATIONS);
+  const [medicationPlans, setMedicationPlans] = useLocalStorage<MedicationPlan[]>('medicationPlans', MOCK_PLANS);
   const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager'>('home');
   const [editingPlan, setEditingPlan] = useState<MedicationPlan | undefined>(undefined);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [sideEffects, setSideEffects] = useState<SideEffect[]>([]);
-  const [intakeLog, setIntakeLog] = useState<IntakeLog[]>([]);
+  const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
+  const [sideEffects, setSideEffects] = useLocalStorage<SideEffect[]>('sideEffects', []);
+  const [intakeLog, setIntakeLog] = useLocalStorage<IntakeLog[]>('intakeLog', []);
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
 
