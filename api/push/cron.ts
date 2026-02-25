@@ -2,12 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
 import webpush from 'web-push';
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Protezione: solo il cron autorizzato può chiamare questo endpoint
   const secret = req.headers['x-cron-secret'] ?? req.query.secret;
@@ -15,12 +9,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Non autorizzato' });
   }
 
+  // Controllo variabili d'ambiente
+  const missing = ['VAPID_EMAIL', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'KV_REST_API_URL', 'KV_REST_API_TOKEN']
+    .filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    return res.status(500).json({ error: 'Variabili mancanti', missing });
+  }
+
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_EMAIL!,
+      process.env.VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!,
+    );
+  } catch (err) {
+    return res.status(500).json({ error: 'VAPID setup fallito', detail: String(err) });
+  }
+
   // Orario corrente in Italia (UTC+1 in inverno, UTC+2 in estate)
   const now = new Date();
   const itTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
   const currentTime = `${itTime.getHours().toString().padStart(2, '0')}:${itTime.getMinutes().toString().padStart(2, '0')}`;
 
-  const deviceIds = await kv.smembers('devices') as string[];
+  let deviceIds: string[];
+  try {
+    deviceIds = (await kv.smembers('devices')) as string[];
+  } catch (err) {
+    return res.status(500).json({ error: 'KV smembers fallito', detail: String(err) });
+  }
+
   const results: { deviceId: string; sent: string[]; errors: string[] }[] = [];
 
   for (const deviceId of deviceIds) {
@@ -51,7 +68,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (err: unknown) {
         const e = err as { statusCode?: number };
         errors.push(`${item.id}: ${e.statusCode ?? 'err'}`);
-        // Subscription scaduta: rimuovi il dispositivo
         if (e.statusCode === 410) {
           await kv.del(`device:${deviceId}`);
           await kv.srem('devices', deviceId);
@@ -62,5 +78,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     results.push({ deviceId, sent, errors });
   }
 
-  res.json({ time: currentTime, results });
+  res.json({ time: currentTime, devices: deviceIds.length, results });
 }
