@@ -11,8 +11,13 @@ export default defineConfig(({mode}) => {
       react(), 
       tailwindcss(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
+        injectManifest: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        },
         manifest: {
           name: 'MemoFarmaci',
           short_name: 'MemoFarmaci',
@@ -24,20 +29,22 @@ export default defineConfig(({mode}) => {
           start_url: '/',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'icons/icon-192x192.png',
               sizes: '192x192',
               type: 'image/png',
+              purpose: 'any',
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icons/icon-512x512.png',
               sizes: '512x512',
               type: 'image/png',
+              purpose: 'any',
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icons/icon-512x512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'maskable',
             },
           ],
         },
