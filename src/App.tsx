@@ -229,16 +229,30 @@ export default function App() {
         <h2 className="text-2xl font-serif mb-4 text-center">I tuoi impegni di oggi</h2>
         <div className="space-y-4">
           {todaysEvents.map(item => {
-            if (item.type === 'medication') {
+            if (item.type === 'medication' && !item.taken) {
               const now = new Date();
               const [itemHours, itemMinutes] = item.time.split(':').map(Number);
               const itemDate = new Date();
               itemDate.setHours(itemHours, itemMinutes, 0, 0);
-              const isConfirmable = now >= itemDate && (now.getTime() - itemDate.getTime() <= 30 * 60 * 1000);
-              const isDisabled = item.taken || !isConfirmable;
+
+              const timeDiffMs = now.getTime() - itemDate.getTime();
+              const isPastDue = now >= itemDate;
+              const isLate = isPastDue && timeDiffMs > 30 * 60 * 1000;
+
+              let buttonClasses = 'px-6 py-4 rounded-full text-white text-lg font-bold shadow-lg transition-transform transform active:scale-95';
+              let buttonDisabled = false;
+
+              if (isLate) {
+                buttonClasses += ' bg-red-600 hover:bg-red-700 animate-pulse';
+              } else if (isPastDue) {
+                buttonClasses += ' bg-green-600 hover:bg-green-700';
+              } else {
+                buttonClasses += ' bg-gray-400 cursor-not-allowed';
+                buttonDisabled = true;
+              }
 
               return (
-                <div key={item.id} className={`p-6 rounded-2xl shadow-md flex items-center justify-between transition-all ${item.taken ? 'bg-green-100 opacity-70' : 'bg-amber-50'}`}>
+                <div key={item.id} className={'p-6 rounded-2xl shadow-md flex items-center justify-between transition-all bg-amber-50'}>
                   <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
                     {medications.find(m => m.id === item.medicationId)?.boxPhoto && <img src={medications.find(m => m.id === item.medicationId)?.boxPhoto} alt="Scatola" className="w-16 h-16 object-cover rounded-lg shadow-sm" />}
                     <div>
@@ -247,8 +261,8 @@ export default function App() {
                       <p className="text-lg text-slate-500">{item.dosage}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleToggleTaken(item.id)} className={`px-6 py-4 rounded-full text-white text-lg font-bold shadow-lg transition-transform transform active:scale-95 ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`} disabled={isDisabled}>
-                    {item.taken ? 'Preso' : 'Conferma'}
+                  <button onClick={() => handleToggleTaken(item.id)} className={buttonClasses} disabled={buttonDisabled}>
+                    Conferma
                   </button>
                 </div>
               );
@@ -272,6 +286,7 @@ export default function App() {
       <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl shadow-inner-top">
         <button onClick={() => setCurrentView('home')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={32} /></button>
         <button onClick={() => setCurrentView('appointments')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={32} /></button>
+        <button onClick={() => setCurrentView('history')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={32} /></button>
         <button onClick={() => setCurrentView('addMedication')} className="p-6 bg-[#5A5A40] text-white rounded-full shadow-lg -mt-16 transform hover:scale-110 transition-transform"><Plus size={40} /></button>
         <button onClick={() => setCurrentView('sideEffects')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={32} /></button>
         <button onClick={() => setCurrentView('planManager')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Bell size={32} /></button>

@@ -33,14 +33,36 @@ export default function MedicationDetailModal({ scheduleItem, medication, onClos
           >
             Chiudi
           </button>
-          {!scheduleItem.taken && (
-            <button 
-              onClick={onConfirm}
-              className="w-full bg-green-600 text-white text-xl font-bold py-4 rounded-lg hover:bg-green-700 transition-all"
-            >
-              Conferma
-            </button>
-          )}
+          {(() => {
+            if (scheduleItem.taken) return null;
+
+            const now = new Date();
+            const [itemHours, itemMinutes] = scheduleItem.time.split(':').map(Number);
+            const itemDate = new Date();
+            itemDate.setHours(itemHours, itemMinutes, 0, 0);
+
+            const timeDiffMs = now.getTime() - itemDate.getTime();
+            const isPastDue = now >= itemDate;
+            const isLate = isPastDue && timeDiffMs > 30 * 60 * 1000;
+
+            let buttonClasses = 'w-full text-white text-xl font-bold py-4 rounded-lg transition-all';
+            let buttonDisabled = false;
+
+            if (isLate) {
+              buttonClasses += ' bg-red-600 hover:bg-red-700 animate-pulse';
+            } else if (isPastDue) {
+              buttonClasses += ' bg-green-600 hover:bg-green-700';
+            } else {
+              buttonClasses += ' bg-gray-400 cursor-not-allowed';
+              buttonDisabled = true;
+            }
+
+            return (
+              <button onClick={onConfirm} disabled={buttonDisabled} className={buttonClasses}>
+                Conferma
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>
