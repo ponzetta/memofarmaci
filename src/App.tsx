@@ -3,6 +3,7 @@ import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysSchedule
 import { Plus, Bell, Home, FileHeart, CalendarPlus, CalendarClock } from 'lucide-react';
 import AddMedication from './components/AddMedication';
 import ScheduleMedication from './components/ScheduleMedication';
+import PlanManager from './components/PlanManager';
 import AlarmModal from './components/AlarmModal';
 import HistoryLog from './components/HistoryLog';
 import SideEffects from './components/SideEffects';
@@ -39,7 +40,8 @@ const MOCK_PLANS: MedicationPlan[] = [
 export default function App() {
   const [medications, setMedications] = useState<Medication[]>(MOCK_MEDICATIONS);
   const [medicationPlans, setMedicationPlans] = useState<MedicationPlan[]>(MOCK_PLANS);
-  const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager'>('home');
+  const [editingPlan, setEditingPlan] = useState<MedicationPlan | undefined>(undefined);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sideEffects, setSideEffects] = useState<SideEffect[]>([]);
   const [intakeLog, setIntakeLog] = useState<IntakeLog[]>([]);
@@ -132,10 +134,30 @@ export default function App() {
     setCurrentView('home');
   };
 
-  const handleAddPlan = (planData: {medicationId: string, time: string, dosage: string, frequency: Frequency, startDate: string, endDate: string}) => {
-    const newPlan: MedicationPlan = { id: `p${Date.now()}`, ...planData };
-    setMedicationPlans(prev => [...prev, newPlan]);
-    setCurrentView('home');
+  const handleSavePlan = (planData: MedicationPlan) => {
+    setMedicationPlans(prevPlans => {
+      const existingIndex = prevPlans.findIndex(p => p.id === planData.id);
+      if (existingIndex > -1) {
+        // Update
+        const newPlans = [...prevPlans];
+        newPlans[existingIndex] = planData;
+        return newPlans;
+      } else {
+        // Add new
+        return [...prevPlans, planData];
+      }
+    });
+    setEditingPlan(undefined);
+    setCurrentView('planManager');
+  };
+
+  const handleEditPlan = (plan: MedicationPlan) => {
+    setEditingPlan(plan);
+    setCurrentView('addPlan');
+  };
+
+  const handleDeletePlan = (planId: string) => {
+    setMedicationPlans(prevPlans => prevPlans.filter(p => p.id !== planId));
   };
 
   const handleAddSideEffect = (medicationId: string, description: string) => {
@@ -181,7 +203,8 @@ export default function App() {
   };
 
   if (currentView === 'addMedication') return <AddMedication onAddMedication={handleAddMedication} onClose={() => setCurrentView('home')} />;
-  if (currentView === 'addPlan') return <ScheduleMedication medications={medications} onAddPlan={handleAddPlan} onClose={() => setCurrentView('home')} />;
+  if (currentView === 'addPlan') return <ScheduleMedication medications={medications} onSavePlan={handleSavePlan} onClose={() => { setEditingPlan(undefined); setCurrentView('planManager'); }} existingPlan={editingPlan} />;
+  if (currentView === 'planManager') return <PlanManager plans={medicationPlans} medications={medications} onAddNew={() => { setEditingPlan(undefined); setCurrentView('addPlan'); }} onEdit={handleEditPlan} onDelete={handleDeletePlan} onClose={() => setCurrentView('home')} />;
   if (currentView === 'history') return <HistoryLog logs={intakeLog} medications={medications} onClose={() => setCurrentView('home')} />;
   if (currentView === 'sideEffects') return <SideEffects medications={medications} sideEffects={sideEffects} onAddSideEffect={handleAddSideEffect} onClose={() => setCurrentView('home')} />;
   if (currentView === 'appointments') return <Appointments appointments={appointments} onAddAppointment={handleAddAppointment} onClose={() => setCurrentView('home')} />;
@@ -250,7 +273,7 @@ export default function App() {
         <button onClick={() => setCurrentView('appointments')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={32} /></button>
         <button onClick={() => setCurrentView('addMedication')} className="p-6 bg-[#5A5A40] text-white rounded-full shadow-lg -mt-16 transform hover:scale-110 transition-transform"><Plus size={40} /></button>
         <button onClick={() => setCurrentView('sideEffects')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={32} /></button>
-        <button onClick={() => setCurrentView('addPlan')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Bell size={32} /></button>
+        <button onClick={() => setCurrentView('planManager')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Bell size={32} /></button>
       </footer>
     </div>
   );

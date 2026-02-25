@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import type { Medication, Frequency } from '../types';
+import type { Medication, Frequency, MedicationPlan } from '../types';
 
 interface ScheduleMedicationProps {
   medications: Medication[];
-  onAddPlan: (plan: {medicationId: string, time: string, dosage: string, frequency: Frequency, startDate: string, endDate: string}) => void;
+  onSavePlan: (plan: MedicationPlan) => void;
   onClose: () => void;
+  existingPlan?: MedicationPlan;
 }
 
-export default function ScheduleMedication({ medications, onAddPlan, onClose }: ScheduleMedicationProps) {
-  const [selectedMed, setSelectedMed] = useState<string>(medications[0]?.id || '');
-  const [time, setTime] = useState('08:00');
-  const [dosage, setDosage] = useState('');
-  const [frequency, setFrequency] = useState<Frequency>('daily');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState('');
+export default function ScheduleMedication({ medications, onSavePlan, onClose, existingPlan }: ScheduleMedicationProps) {
+  const [selectedMed, setSelectedMed] = useState<string>(existingPlan?.medicationId || medications[0]?.id || '');
+  const [time, setTime] = useState(existingPlan?.time || '08:00');
+  const [dosage, setDosage] = useState(existingPlan?.dosage || '');
+  const [frequency, setFrequency] = useState<Frequency>(existingPlan?.frequency || 'daily');
+  const [startDate, setStartDate] = useState(existingPlan?.startDate || new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(existingPlan?.endDate || '');
 
 
   const handleSubmit = () => {
@@ -25,13 +26,21 @@ export default function ScheduleMedication({ medications, onAddPlan, onClose }: 
       alert('La data di inizio non può essere successiva alla data di fine.');
       return;
     }
-    onAddPlan({ medicationId: selectedMed, time, dosage: dosage.trim(), frequency, startDate, endDate });
+    onSavePlan({ 
+      id: existingPlan?.id || `p${Date.now()}`,
+      medicationId: selectedMed, 
+      time, 
+      dosage: dosage.trim(), 
+      frequency, 
+      startDate, 
+      endDate 
+    });
   };
 
   return (
     <div className="w-full h-full bg-white p-6 flex flex-col">
       <header className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif text-slate-800">Pianifica Farmaco</h2>
+        <h2 className="text-3xl font-serif text-slate-800">{existingPlan ? 'Modifica Piano' : 'Pianifica Farmaco'}</h2>
         <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
       </header>
       <main className="flex-grow flex flex-col justify-center space-y-4">
@@ -41,7 +50,7 @@ export default function ScheduleMedication({ medications, onAddPlan, onClose }: 
             {medications.map(med => <option key={med.id} value={med.id}>{med.name}</option>)}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-lg font-medium text-slate-600 mb-2">Inizio Cura</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-3 border-2 rounded-lg text-lg" />
@@ -81,7 +90,7 @@ export default function ScheduleMedication({ medications, onAddPlan, onClose }: 
             onClick={handleSubmit}
             className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 transition-all transform active:scale-95"
           >
-            Aggiungi al Piano
+            {existingPlan ? 'Salva Modifiche' : 'Aggiungi al Piano'}
           </button>
         </div>
       </footer>
