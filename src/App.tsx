@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
 import Toast from './components/Toast';
 import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
@@ -49,14 +49,14 @@ export default function App() {
   const [intakeLog, setIntakeLog] = useLocalStorage<IntakeLog[]>('intakeLog', []);
 
   // Calcola lo schedule ad ogni render per la massima affidabilità
+  const todayForStr = new Date();
+  const year = todayForStr.getFullYear();
+  const month = (todayForStr.getMonth() + 1).toString().padStart(2, '0');
+  const day = todayForStr.getDate().toString().padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  // Usa componenti locali per evitare sfasamenti UTC (es. UTC+1 in Italia)
-  const todayStr = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
 
   const activePlans = medicationPlans.filter(plan => {
     const start = new Date(plan.startDate);
@@ -75,11 +75,7 @@ export default function App() {
   });
 
   const todaysSchedule: TodaysScheduleItem[] = activePlans.map(plan => {
-    const taken = intakeLog.some(log => {
-      const d = new Date(log.timestamp);
-      const logDateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-      return log.medicationId === plan.medicationId && logDateStr === todayStr && log.scheduleTime === plan.time;
-    });
+    const taken = intakeLog.some(log => log.medicationId === plan.medicationId && log.timestamp.startsWith(todayStr) && log.scheduleTime === plan.time);
     return {
       id: `${plan.id}-${todayStr}`,
       planId: plan.id,
@@ -94,9 +90,65 @@ export default function App() {
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
 
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const beepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const vibrateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (alarmingScheduleId) {
+      // --- Audio via Web Audio API ---
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880; // La5
+      gain.gain.value = 0;
+      osc.start();
+      oscillatorRef.current = osc;
+      gainRef.current = gain;
+
+      // Pianifica un pattern "bip-bip" ripetuto
+      const scheduleBeeps = () => {
+        const now = ctx.currentTime;
+        const g = gain.gain;
+        g.cancelScheduledValues(now);
+        // 3 bip da 0.25s separati da 0.15s di silenzio, poi pausa di 0.8s
+        [0, 0.4, 0.8].forEach(offset => {
+          g.setValueAtTime(0.9, now + offset);
+          g.setValueAtTime(0, now + offset + 0.25);
+        });
+      };
+      scheduleBeeps();
+      beepIntervalRef.current = setInterval(scheduleBeeps, 1600);
+
+      // --- Vibrazione continua ---
+      const vibrate = () => { if ('vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]); };
+      vibrate();
+      vibrateIntervalRef.current = setInterval(vibrate, 1800);
+
+    } else {
+      // Stop audio
+      if (beepIntervalRef.current) { clearInterval(beepIntervalRef.current); beepIntervalRef.current = null; }
+      if (oscillatorRef.current) { try { oscillatorRef.current.stop(); } catch {} oscillatorRef.current = null; }
+      if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+      // Stop vibrazione
+      if (vibrateIntervalRef.current) { clearInterval(vibrateIntervalRef.current); vibrateIntervalRef.current = null; }
+      if ('vibrate' in navigator) navigator.vibrate(0);
+    }
+
+    return () => {
+      if (beepIntervalRef.current) clearInterval(beepIntervalRef.current);
+      if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
+    };
+  }, [alarmingScheduleId]);
+
   const todaysEvents = useMemo(() => {
-    const _now = new Date();
-    const todayStr = [_now.getFullYear(), String(_now.getMonth() + 1).padStart(2, '0'), String(_now.getDate()).padStart(2, '0')].join('-');
+    const todayStr = new Date().toISOString().split('T')[0];
     const medicationEvents = todaysSchedule.map(item => ({ ...item, type: 'medication' as const }));
     const appointmentEvents = appointments
       .filter(app => app.dateTime.startsWith(todayStr))
