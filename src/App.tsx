@@ -316,8 +316,8 @@ export default function App() {
 
               const boxPhoto = medications.find(m => m.id === item.medicationId)?.boxPhoto;
               return (
-                <div key={item.id} className="p-6 rounded-2xl shadow-md flex items-center justify-between transition-all bg-amber-50">
-                  <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
+                <div key={item.id} className="p-6 rounded-2xl shadow-md flex flex-col gap-4 transition-all bg-amber-50">
+                  <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
                     {boxPhoto && <img src={boxPhoto} alt="Scatola" className="w-16 h-16 object-cover rounded-lg shadow-sm" />}
                     <div>
                       <p className="text-2xl font-bold text-slate-800">{item.time}</p>
@@ -325,9 +325,11 @@ export default function App() {
                       <p className="text-lg text-slate-500">{item.dosage}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleToggleTaken(item.id)} className={btnClass} disabled={disabled}>
-                    Conferma
-                  </button>
+                  <div className="flex justify-center">
+                    <button onClick={() => handleToggleTaken(item.id)} className={btnClass} disabled={disabled}>
+                      Conferma
+                    </button>
+                  </div>
                 </div>
               );
             } else if (item.type === 'appointment') {
