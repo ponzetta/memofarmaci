@@ -64,16 +64,7 @@ export default function App() {
     taken: isTakenToday(plan.id, plan.time, todayStr),
   }));
 
-  const pushSchedule = useMemo(() =>
-    todaysSchedule
-      .filter(item => !item.taken)
-      .map(item => ({
-        id: item.id,
-        time: item.time,
-        name: medications.find(m => m.id === item.medicationId)?.name ?? 'Farmaco',
-      })),
-  [todaysSchedule, medications]);
-  usePushNotifications(pushSchedule);
+  usePushNotifications();
 
   // Blocca tasto ← Android
   useEffect(() => {

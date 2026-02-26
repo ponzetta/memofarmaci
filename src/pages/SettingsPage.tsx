@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import TelegramLinkCard from '../components/TelegramLinkCard';
 import type { UserProfile } from '../types';
 
@@ -106,6 +107,11 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
           />
         </Section>
 
+        {/* Notifiche push */}
+        <Section title="Notifiche push">
+          <NotificationSection />
+        </Section>
+
         {/* Collegamento Telegram */}
         <Section title="Collegamento Telegram">
           <TelegramLinkCard
@@ -169,6 +175,51 @@ function Field({
         onChange={e => onChange(e.target.value)}
         className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
       />
+    </div>
+  );
+}
+
+function NotificationSection() {
+  const supported = 'Notification' in window && 'PushManager' in window && 'serviceWorker' in navigator;
+  const { permStatus, requestAndSubscribe } = usePushNotifications();
+  const [subscribing, setSubscribing] = useState(false);
+
+  if (!supported) {
+    return <p className="text-sm text-slate-500">Le notifiche push non sono supportate su questo browser. Su iOS installa l'app dalla schermata Home.</p>;
+  }
+
+  const handleEnable = async () => {
+    setSubscribing(true);
+    await requestAndSubscribe();
+    setSubscribing(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="text-sm font-medium text-slate-700">Avvisi in background</p>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {permStatus === 'granted' && 'Attive — riceverai avvisi anche a schermo spento'}
+          {permStatus === 'denied' && 'Bloccate — abilitale nelle impostazioni del browser'}
+          {permStatus === 'default' && 'Non ancora attivate'}
+        </p>
+      </div>
+      {permStatus === 'granted' && (
+        <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-xl">Attive ✓</span>
+      )}
+      {permStatus === 'denied' && (
+        <span className="px-3 py-1 bg-red-100 text-red-600 text-sm font-medium rounded-xl">Bloccate</span>
+      )}
+      {permStatus === 'default' && (
+        <button
+          type="button"
+          onClick={handleEnable}
+          disabled={subscribing}
+          className="px-4 py-2 bg-[#5A5A40] text-white text-sm font-bold rounded-xl hover:bg-opacity-90 disabled:opacity-60 transition-all"
+        >
+          {subscribing ? '...' : 'Attiva'}
+        </button>
+      )}
     </div>
   );
 }
