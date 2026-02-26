@@ -103,6 +103,23 @@ export default function App() {
   [todaysSchedule, medications]);
   usePushNotifications(pushSchedule);
 
+  // Blocca il tasto ← Android: torna alla home se su una vista secondaria,
+  // altrimenti non chiude l'app
+  useEffect(() => {
+    history.pushState({ pwa: true }, '');
+
+    const onPopState = () => {
+      if (currentView !== 'home') {
+        setCurrentView('home');
+      }
+      // Ri-inietta sempre lo stato fittizio per bloccare la chiusura
+      history.pushState({ pwa: true }, '');
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [currentView]);
+
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');

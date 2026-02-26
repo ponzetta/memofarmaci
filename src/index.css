@@ -3,6 +3,17 @@
 @import "tailwindcss";
 
 @layer base {
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(-10%) translateX(-50%);
+      animation-timing-function: cubic-bezier(0.8,0,1,1);
+    }
+    50% {
+      transform: translateY(0) translateX(-50%);
+      animation-timing-function: cubic-bezier(0,0,0.2,1);
+    }
+  }
+
   body {
     @apply bg-[#F5F5F0] text-[#333333] font-sans;
   }
