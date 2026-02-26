@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type React from 'react';
 import { Camera, Pill } from 'lucide-react';
 import type { Medication } from '../types';
+import CropModal from './CropModal';
 
 interface AddMedicationProps {
   onAddMedication: (name: string, boxFile?: File, pillFile?: File) => Promise<void>;
@@ -42,19 +43,32 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
   const [boxFile, setBoxFile] = useState<File | undefined>(undefined);
   const [pillFile, setPillFile] = useState<File | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [cropSource, setCropSource] = useState<{
+    dataUrl: string;
+    setPreview: (v: string) => void;
+    setFile: (v: File) => void;
+  } | null>(null);
 
-  const handleFileChange = async (
+  const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setPreview: (v: string) => void,
     setFile: (v: File) => void,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const resized = await resizeImage(file);
-    setFile(resized);
     const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result as string);
+    reader.onloadend = () => setCropSource({ dataUrl: reader.result as string, setPreview, setFile });
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    if (!cropSource) return;
+    const resized = await resizeImage(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+    cropSource.setFile(resized);
+    const reader = new FileReader();
+    reader.onloadend = () => cropSource.setPreview(reader.result as string);
     reader.readAsDataURL(resized);
+    setCropSource(null);
   };
 
   const handleSubmit = async () => {
@@ -71,6 +85,14 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
   };
 
   return (
+    <>
+    {cropSource && (
+      <CropModal
+        imageSrc={cropSource.dataUrl}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropSource(null)}
+      />
+    )}
     <div className="w-full h-full bg-white p-6 flex flex-col">
       <header className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-serif text-slate-800">
@@ -147,5 +169,6 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
         </div>
       </footer>
     </div>
+    </>
   );
 }
