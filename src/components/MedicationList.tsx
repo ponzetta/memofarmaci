@@ -17,13 +17,16 @@ export default function MedicationList({ medications, onAdd, onEdit, onDelete, o
         <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
       </header>
 
-      <div className="mb-4">
+      <div className="mb-4 flex gap-4">
         <button
           onClick={onAdd}
           className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90"
         >
           <Plus size={24} />
           Aggiungi Farmaco
+        </button>
+        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all">
+          Chiudi
         </button>
       </div>
 
@@ -56,14 +59,6 @@ export default function MedicationList({ medications, onAdd, onEdit, onDelete, o
         )}
       </main>
 
-      <footer className="mt-auto pt-4">
-        <button
-          onClick={onClose}
-          className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-5 rounded-2xl hover:bg-gray-300 transition-all"
-        >
-          Chiudi
-        </button>
-      </footer>
     </div>
   );
 }

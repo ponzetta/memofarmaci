@@ -23,12 +23,12 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
       </header>
 
       <div className="mb-4 flex gap-4">
-        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all">
-          Chiudi
-        </button>
         <button onClick={onAddNew} className="w-full bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 flex items-center justify-center gap-2">
           <Plus size={22} />
           Aggiungi
+        </button>
+        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all">
+          Chiudi
         </button>
       </div>
 

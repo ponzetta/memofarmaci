@@ -26,7 +26,9 @@ export default function HistoryLog({ logs, medications, onClose }: HistoryLogPro
     <div className="w-full h-full bg-white p-6 flex flex-col">
       <header className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-serif text-slate-800">Cronologia Assunzioni</h2>
-        
+        <button onClick={onClose} className="bg-gray-200 text-gray-800 text-lg font-bold px-5 py-2 rounded-2xl hover:bg-gray-300 transition-all">
+          Chiudi
+        </button>
       </header>
       <main className="flex-grow overflow-y-auto">
         {logs.length === 0 ? (
@@ -42,11 +44,6 @@ export default function HistoryLog({ logs, medications, onClose }: HistoryLogPro
           </ul>
         )}
       </main>
-      <footer className="p-4 mt-auto">
-        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-5 rounded-2xl hover:bg-gray-300 transition-all">
-          Chiudi
-        </button>
-      </footer>
     </div>
   );
 }
