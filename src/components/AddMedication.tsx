@@ -9,6 +9,32 @@ interface AddMedicationProps {
   existingMedication?: Medication;
 }
 
+function resizeImage(file: File, maxSize = 800, quality = 0.8): Promise<File> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) { height = Math.round(height * maxSize / width); width = maxSize; }
+        } else {
+          if (height > maxSize) { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(blob => {
+          resolve(new File([blob!], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AddMedication({ onAddMedication, onClose, existingMedication }: AddMedicationProps) {
   const [name, setName] = useState(existingMedication?.name ?? '');
   const [boxPreview, setBoxPreview] = useState<string | undefined>(existingMedication?.boxPhoto);
@@ -17,18 +43,18 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
   const [pillFile, setPillFile] = useState<File | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     setPreview: (v: string) => void,
     setFile: (v: File) => void,
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const resized = await resizeImage(file);
+    setFile(resized);
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(resized);
   };
 
   const handleSubmit = async () => {
