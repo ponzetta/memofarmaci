@@ -58,8 +58,7 @@ export function useMedicationPlans() {
   async function savePlan(planData: Omit<MedicationPlan, 'userId' | 'createdAt'>): Promise<void> {
     if (!user) throw new Error('Utente non autenticato');
 
-    const dbData = {
-      id: planData.id,
+    const baseData = {
       user_id: user.id,
       medication_id: planData.medicationId,
       time: planData.time,
@@ -72,18 +71,20 @@ export function useMedicationPlans() {
     const existing = plans.find(p => p.id === planData.id);
 
     if (existing) {
+      // Aggiornamento: usa l'id esistente (UUID valido)
       const { data, error } = await supabase
         .from('medication_plans')
-        .update(dbData)
+        .update(baseData)
         .eq('id', planData.id)
         .select()
         .single();
       if (error) throw error;
       setPlans(prev => prev.map(p => p.id === planData.id ? mapRow(data as DbRow) : p));
     } else {
+      // Inserimento: ometti l'id, Supabase genera un UUID valido
       const { data, error } = await supabase
         .from('medication_plans')
-        .insert(dbData)
+        .insert(baseData)
         .select()
         .single();
       if (error) throw error;
