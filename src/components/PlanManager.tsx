@@ -44,7 +44,7 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
                 <div>
                   <p className="font-bold text-lg text-slate-800">{getMedicationName(plan.medicationId)}</p>
                   <p className="text-slate-600">{plan.dosage} alle {plan.time}</p>
-                  <p className="text-sm text-slate-500">Dal {plan.startDate} al {plan.endDate}</p>
+                  <p className="text-sm text-slate-500">Dal {plan.startDate}{plan.endDate === '2099-12-31' ? ' · Nessuna scadenza' : ` al ${plan.endDate}`}</p>
                 </div>
                 <div className="flex items-center">
                   <button onClick={() => onEdit(plan)} className="text-blue-500 hover:text-blue-700 p-2">

@@ -9,31 +9,38 @@ interface ScheduleMedicationProps {
 }
 
 export default function ScheduleMedication({ medications, onSavePlan, onClose, existingPlan }: ScheduleMedicationProps) {
+  const NO_END_DATE = '2099-12-31';
   const [selectedMed, setSelectedMed] = useState<string>(existingPlan?.medicationId || medications[0]?.id || '');
   const [time, setTime] = useState(existingPlan?.time || '08:00');
-  const [dosage, setDosage] = useState(existingPlan?.dosage || '');
+  const [dosage, setDosage] = useState(existingPlan?.dosage || '1 compressa');
   const [frequency, setFrequency] = useState<Frequency>(existingPlan?.frequency || 'daily');
   const [startDate, setStartDate] = useState(existingPlan?.startDate || new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(existingPlan?.endDate || '');
+  const [noEndDate, setNoEndDate] = useState(existingPlan?.endDate === NO_END_DATE || !existingPlan?.endDate);
+  const [endDate, setEndDate] = useState(existingPlan?.endDate && existingPlan.endDate !== NO_END_DATE ? existingPlan.endDate : '');
 
 
   const handleSubmit = () => {
-    if (!selectedMed || !time || !dosage.trim() || !startDate || !endDate) {
-      alert('Per favore, compila tutti i campi.');
+    const resolvedEndDate = noEndDate ? NO_END_DATE : endDate;
+    if (!selectedMed || !time || !dosage.trim() || !startDate) {
+      alert('Per favore, compila tutti i campi obbligatori.');
       return;
     }
-    if (new Date(startDate) > new Date(endDate)) {
+    if (!noEndDate && !endDate) {
+      alert('Inserisci una data di fine o seleziona "Senza data di fine".');
+      return;
+    }
+    if (!noEndDate && new Date(startDate) > new Date(endDate)) {
       alert('La data di inizio non può essere successiva alla data di fine.');
       return;
     }
-    onSavePlan({ 
+    onSavePlan({
       id: existingPlan?.id || `p${Date.now()}`,
-      medicationId: selectedMed, 
-      time, 
-      dosage: dosage.trim(), 
-      frequency, 
-      startDate, 
-      endDate 
+      medicationId: selectedMed,
+      time,
+      dosage: dosage.trim(),
+      frequency,
+      startDate,
+      endDate: resolvedEndDate,
     });
   };
 
@@ -56,8 +63,24 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-3 border-2 rounded-lg text-lg" />
           </div>
           <div>
-            <label className="block text-lg font-medium text-slate-600 mb-2">Fine Cura</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-3 border-2 rounded-lg text-lg" />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-lg font-medium text-slate-600">Fine Cura</label>
+              <label className="flex items-center gap-2 text-base text-slate-500 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={noEndDate}
+                  onChange={(e) => setNoEndDate(e.target.checked)}
+                  className="w-5 h-5 accent-[#5A5A40]"
+                />
+                Senza data di fine
+              </label>
+            </div>
+            {!noEndDate && (
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-3 border-2 rounded-lg text-lg" />
+            )}
+            {noEndDate && (
+              <p className="p-3 border-2 border-dashed border-gray-200 rounded-lg text-lg text-slate-400 italic">Nessuna scadenza</p>
+            )}
           </div>
         </div>
         <div>
