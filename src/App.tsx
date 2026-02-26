@@ -147,6 +147,19 @@ export default function App() {
     }
   }, [todaysEvents]);
 
+  // Ascolta messaggi dal Service Worker per triggerare l'allarme quando l'app è in background
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'ALARM_PUSH' && event.data.planId) {
+        const item = todaysSchedule.find(s => s.planId === event.data.planId && !s.taken);
+        if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, [todaysSchedule, alarmingScheduleId]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
