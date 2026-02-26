@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 function getDeviceId(): string {
@@ -23,51 +23,66 @@ export interface ScheduleItem {
   name: string;
 }
 
-export function usePushNotifications(schedule: ScheduleItem[]) {
+async function doSubscribe(): Promise<void> {
+  const keyRes = await fetch('/api/push/vapid-public-key');
+  const { publicKey } = await keyRes.json() as { publicKey: string };
+  if (!publicKey) return;
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return;
+
+  await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ deviceId: getDeviceId(), subscription: sub.toJSON() }),
+  });
+}
+
+export function usePushNotifications(_schedule?: ScheduleItem[]) {
+  const [permStatus, setPermStatus] = useState<NotificationPermission>('default');
   const registeredRef = useRef(false);
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!('Notification' in window)) return;
+    setPermStatus(Notification.permission);
+    // Se il permesso è già concesso, ri-registra silenziosamente
+    if (Notification.permission === 'granted' && !registeredRef.current) {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        doSubscribe()
+          .then(() => { registeredRef.current = true; })
+          .catch(err => console.warn('Push auto-subscribe failed:', err));
+      }
+    }
+  }, []);
 
-    const register = async () => {
+  const requestAndSubscribe = useCallback(async (): Promise<NotificationPermission> => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      return 'denied';
+    }
+    const permission = await Notification.requestPermission();
+    setPermStatus(permission);
+    if (permission === 'granted') {
       try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
-
-        const keyRes = await fetch('/api/push/vapid-public-key');
-        const { publicKey } = await keyRes.json() as { publicKey: string };
-        if (!publicKey) return;
-
-        const reg = await navigator.serviceWorker.ready;
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey),
-          });
-        }
-
-        // Recupera sessione per Authorization header
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
-
-        const deviceId = getDeviceId();
-        await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ deviceId, subscription: sub.toJSON() }),
-        });
-
+        await doSubscribe();
         registeredRef.current = true;
       } catch (err) {
-        console.warn('Push registration failed:', err);
+        console.warn('Push subscribe failed:', err);
       }
-    };
-
-    register();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+    return permission;
   }, []);
+
+  return { permStatus, requestAndSubscribe };
 }
