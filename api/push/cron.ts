@@ -41,16 +41,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const results: unknown[] = [];
 
   // ================================================================
-  // COMPITO 1 — Push puntuale
+  // COMPITO 1 — Push ripetuta ogni minuto per max 30 minuti
   // ================================================================
-  // Trova piani attivi con time = oraCorrente
+  // Trova piani attivi con time nell'ultima mezz'ora (non ancora assunti)
+  const totalMinutes = hour * 60 + minute;
+  const thirtyMinAgo = totalMinutes - 30;
+  const thirtyMinAgoStr = thirtyMinAgo <= 0
+    ? '00:00'
+    : `${String(Math.floor(thirtyMinAgo / 60)).padStart(2, '0')}:${String(thirtyMinAgo % 60).padStart(2, '0')}`;
+
   const { data: duePlans } = await supabase
     .from('medication_plans')
     .select(`
       id, user_id, medication_id, time, dosage, frequency, start_date, end_date,
       medications!inner(name)
     `)
-    .eq('time', currentTime)
+    .gte('time', thirtyMinAgoStr)
+    .lte('time', currentTime)
     .lte('start_date', todayStr)
     .gte('end_date', todayStr);
 
@@ -76,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id')
         .eq('plan_id', plan.id)
         .eq('schedule_date', todayStr)
-        .eq('schedule_time', currentTime)
+        .eq('schedule_time', plan.time)
         .maybeSingle();
       if (takenLog) continue;
 
@@ -89,16 +96,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!subs || subs.length === 0) continue;
 
       const medName = (plan.medications as { name: string }).name;
+      const minutesSince = totalMinutes - (parseInt(plan.time.split(':')[0]) * 60 + parseInt(plan.time.split(':')[1]));
+      const body = minutesSince <= 0
+        ? `Ricordati di prendere ${medName}`
+        : `${medName} non ancora assunto (${minutesSince} min fa)`;
+
       for (const sub of subs as Array<{ endpoint: string; p256dh: string; auth_key: string; device_id: string }>) {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
             JSON.stringify({
               title: '💊 È ora di prendere la medicina!',
-              body: `Ricordati di prendere ${medName} (${plan.time})`,
+              body,
               icon: '/icons/icon-192x192.png',
               badge: '/icons/icon-192x192.png',
               tag: `med-${plan.id}-${todayStr}`,
+              renotify: true,
+              planId: plan.id,
             }),
           );
           results.push({ type: 'push', planId: plan.id, device: sub.device_id, ok: true });

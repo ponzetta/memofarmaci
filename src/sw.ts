@@ -61,16 +61,31 @@ self.addEventListener('push', event => {
       icon?: string;
       badge?: string;
       tag?: string;
+      renotify?: boolean;
+      planId?: string;
     };
-    event.waitUntil(
-      self.registration.showNotification(data.title, {
-        body: data.body,
-        icon: data.icon ?? '/icons/icon-192x192.png',
-        badge: data.badge ?? '/icons/icon-192x192.png',
-        tag: data.tag,
-        requireInteraction: true,
-      }),
-    );
+
+    // Vibrazione ~30 secondi: 800ms vibra, 400ms pausa × 25 = 30s
+    const vibrate: number[] = Array(25).fill(null).flatMap(() => [800, 400]);
+
+    const notifPromise = self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon ?? '/icons/icon-192x192.png',
+      badge: data.badge ?? '/icons/icon-192x192.png',
+      tag: data.tag,
+      requireInteraction: true,
+      renotify: data.renotify ?? false,
+      vibrate,
+    } as NotificationOptions);
+
+    // Se l'app è aperta (anche in background), invia messaggio per suonare l'allarme
+    const msgPromise = data.planId
+      ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients =>
+          clients.forEach(c => c.postMessage({ type: 'ALARM_PUSH', planId: data.planId }))
+        )
+      : Promise.resolve();
+
+    event.waitUntil(Promise.all([notifPromise, msgPromise]));
   } catch {
     const text = event.data.text();
     event.waitUntil(
