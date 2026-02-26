@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 
-// ID univoco per questo dispositivo, persistito in localStorage
 function getDeviceId(): string {
   let id = localStorage.getItem('deviceId');
   if (!id) {
@@ -25,23 +25,19 @@ export interface ScheduleItem {
 
 export function usePushNotifications(schedule: ScheduleItem[]) {
   const registeredRef = useRef(false);
-  const lastScheduleRef = useRef<string>('');
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
     const register = async () => {
       try {
-        // 1. Chiedi permesso notifiche
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') return;
 
-        // 2. Ottieni VAPID public key dal server
         const keyRes = await fetch('/api/push/vapid-public-key');
         const { publicKey } = await keyRes.json() as { publicKey: string };
         if (!publicKey) return;
 
-        // 3. Ottieni/crea push subscription
         const reg = await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
         if (!sub) {
@@ -51,16 +47,21 @@ export function usePushNotifications(schedule: ScheduleItem[]) {
           });
         }
 
-        // 4. Registra dispositivo + schedule sul server
+        // Recupera sessione per Authorization header
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
         const deviceId = getDeviceId();
         await fetch('/api/push/subscribe', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId, subscription: sub.toJSON(), schedule }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ deviceId, subscription: sub.toJSON() }),
         });
 
         registeredRef.current = true;
-        lastScheduleRef.current = JSON.stringify(schedule);
       } catch (err) {
         console.warn('Push registration failed:', err);
       }
@@ -69,19 +70,4 @@ export function usePushNotifications(schedule: ScheduleItem[]) {
     register();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Aggiorna lo schedule sul server ogni volta che cambia
-  useEffect(() => {
-    if (!registeredRef.current) return;
-    const serialized = JSON.stringify(schedule);
-    if (serialized === lastScheduleRef.current) return;
-    lastScheduleRef.current = serialized;
-
-    const deviceId = getDeviceId();
-    fetch('/api/push/schedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId, schedule }),
-    }).catch(() => {});
-  }, [schedule]);
 }

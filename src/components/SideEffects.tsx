@@ -75,7 +75,7 @@ export default function SideEffects({ medications, sideEffects, onAddSideEffect,
               <li key={effect.id} className="bg-red-50 p-4 rounded-lg">
                 <p className="font-bold text-red-800">{getMedicationName(effect.medicationId)}</p>
                 <p className="text-slate-700 my-1">{effect.description}</p>
-                <p className="text-sm text-slate-500">{formatTimestamp(effect.timestamp)}</p>
+                <p className="text-sm text-slate-500">{formatTimestamp(effect.occurredAt)}</p>
               </li>
             ))}
           </ul>

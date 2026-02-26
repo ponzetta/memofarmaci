@@ -1,9 +1,14 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import useLocalStorage from './hooks/useLocalStorage';
+import { useMedications } from './hooks/useMedications';
+import { useMedicationPlans } from './hooks/useMedicationPlans';
+import { useIntakeLogs } from './hooks/useIntakeLogs';
+import { useSideEffects } from './hooks/useSideEffects';
+import { useAppointments } from './hooks/useAppointments';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import Toast from './components/Toast';
-import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
-import { Bell, Home, FileHeart, CalendarPlus, CalendarClock, Pill } from 'lucide-react';
+import OfflineBanner from './components/OfflineBanner';
+import type { MedicationPlan, TodaysScheduleItem, Medication } from './types';
+import { Bell, Home, FileHeart, CalendarPlus, CalendarClock, Pill, Settings } from 'lucide-react';
 import AddMedication from './components/AddMedication';
 import ScheduleMedication from './components/ScheduleMedication';
 import PlanManager from './components/PlanManager';
@@ -13,87 +18,52 @@ import HistoryLog from './components/HistoryLog';
 import SideEffects from './components/SideEffects';
 import Appointments from './components/Appointments';
 import MedicationDetailModal from './components/MedicationDetailModal';
+import SettingsPage from './pages/SettingsPage';
 
-const MOCK_MEDICATIONS: Medication[] = [
-  { id: '1', name: 'Cardioaspirina' },
-  { id: '2', name: 'Lasix' },
-  { id: '3', name: 'Torvast' },
-];
+type View = 'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager' | 'medications' | 'settings';
 
-const MOCK_PLANS: MedicationPlan[] = [
-  {
-    id: 'p1',
-    medicationId: '1',
-    time: '08:00',
-    dosage: '1 compressa',
-    frequency: 'daily',
-    startDate: '2023-01-01',
-    endDate: '2029-12-31',
-  },
-  {
-    id: 'p2',
-    medicationId: '2',
-    time: '13:00',
-    dosage: '1 compressa',
-    frequency: 'alternate',
-    startDate: '2023-01-01',
-    endDate: '2029-12-31',
-  },
-];
+function getTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function App() {
-  const [medications, setMedications] = useLocalStorage<Medication[]>('medications', MOCK_MEDICATIONS);
-  const [medicationPlans, setMedicationPlans] = useLocalStorage<MedicationPlan[]>('medicationPlans', MOCK_PLANS);
-  const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager' | 'medications'>('home');
+  const { medications, addMedication, updateMedication, deleteMedication } = useMedications();
+  const { plans, savePlan, deletePlan } = useMedicationPlans();
+  const { logs, logIntake, isTakenToday } = useIntakeLogs();
+  const { sideEffects, addSideEffect } = useSideEffects();
+  const { appointments, addAppointment } = useAppointments();
+
+  const [currentView, setCurrentView] = useState<View>('home');
   const [editingPlan, setEditingPlan] = useState<MedicationPlan | undefined>(undefined);
   const [editingMedication, setEditingMedication] = useState<Medication | undefined>(undefined);
-  const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
-  const [sideEffects, setSideEffects] = useLocalStorage<SideEffect[]>('sideEffects', []);
-  const [intakeLog, setIntakeLog] = useLocalStorage<IntakeLog[]>('intakeLog', []);
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Calcola lo schedule ad ogni render per la massima affidabilità
-  const todayForStr = new Date();
-  const year = todayForStr.getFullYear();
-  const month = (todayForStr.getMonth() + 1).toString().padStart(2, '0');
-  const day = todayForStr.getDate().toString().padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
-
+  const todayStr = getTodayStr();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const activePlans = medicationPlans.filter(plan => {
-    const start = new Date(plan.startDate);
-    start.setHours(0,0,0,0);
-    const end = new Date(plan.endDate);
-    end.setHours(0,0,0,0);
-
+  const activePlans = plans.filter(plan => {
+    const start = new Date(plan.startDate); start.setHours(0, 0, 0, 0);
+    const end = new Date(plan.endDate); end.setHours(0, 0, 0, 0);
     if (today < start || today > end) return false;
     if (plan.frequency === 'daily') return true;
     if (plan.frequency === 'alternate') {
-      const diffTime = Math.abs(today.getTime() - start.getTime());
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.floor(Math.abs(today.getTime() - start.getTime()) / 86400000);
       return diffDays % 2 === 0;
     }
     return false;
   });
 
-  const todaysSchedule: TodaysScheduleItem[] = activePlans.map(plan => {
-    const taken = intakeLog.some(log => {
-      const d = new Date(log.timestamp);
-      const logDateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-      return log.medicationId === plan.medicationId && logDateStr === todayStr && log.scheduleTime === plan.time;
-    });
-    return {
-      id: `${plan.id}-${todayStr}`,
-      planId: plan.id,
-      medicationId: plan.medicationId,
-      time: plan.time,
-      dosage: plan.dosage,
-      taken,
-    };
-  });
+  const todaysSchedule: TodaysScheduleItem[] = activePlans.map(plan => ({
+    id: `${plan.id}-${todayStr}`,
+    planId: plan.id,
+    medicationId: plan.medicationId,
+    time: plan.time,
+    dosage: plan.dosage,
+    taken: isTakenToday(plan.id, plan.time, todayStr),
+  }));
 
-  // Push notifications in background (server-side scheduling)
   const pushSchedule = useMemo(() =>
     todaysSchedule
       .filter(item => !item.taken)
@@ -105,26 +75,19 @@ export default function App() {
   [todaysSchedule, medications]);
   usePushNotifications(pushSchedule);
 
-  // Blocca il tasto ← Android: torna alla home se su una vista secondaria,
-  // altrimenti non chiude l'app
+  // Blocca tasto ← Android
   useEffect(() => {
     history.pushState({ pwa: true }, '');
-
     const onPopState = () => {
-      if (currentView !== 'home') {
-        setCurrentView('home');
-      }
-      // Ri-inietta sempre lo stato fittizio per bloccare la chiusura
+      if (currentView !== 'home') setCurrentView('home');
       history.pushState({ pwa: true }, '');
     };
-
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, [currentView]);
 
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -134,7 +97,6 @@ export default function App() {
 
   useEffect(() => {
     if (alarmingScheduleId) {
-      // --- Audio via Web Audio API ---
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
       const osc = ctx.createOscillator();
@@ -142,18 +104,16 @@ export default function App() {
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.type = 'sine';
-      osc.frequency.value = 880; // La5
+      osc.frequency.value = 880;
       gain.gain.value = 0;
       osc.start();
       oscillatorRef.current = osc;
       gainRef.current = gain;
 
-      // Pianifica un pattern "bip-bip" ripetuto
       const scheduleBeeps = () => {
         const now = ctx.currentTime;
         const g = gain.gain;
         g.cancelScheduledValues(now);
-        // 3 bip da 0.25s separati da 0.15s di silenzio, poi pausa di 0.8s
         [0, 0.4, 0.8].forEach(offset => {
           g.setValueAtTime(0.9, now + offset);
           g.setValueAtTime(0, now + offset + 0.25);
@@ -162,21 +122,16 @@ export default function App() {
       scheduleBeeps();
       beepIntervalRef.current = setInterval(scheduleBeeps, 1600);
 
-      // --- Vibrazione continua ---
       const vibrate = () => { if ('vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]); };
       vibrate();
       vibrateIntervalRef.current = setInterval(vibrate, 1800);
-
     } else {
-      // Stop audio
       if (beepIntervalRef.current) { clearInterval(beepIntervalRef.current); beepIntervalRef.current = null; }
       if (oscillatorRef.current) { try { oscillatorRef.current.stop(); } catch {} oscillatorRef.current = null; }
       if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
-      // Stop vibrazione
       if (vibrateIntervalRef.current) { clearInterval(vibrateIntervalRef.current); vibrateIntervalRef.current = null; }
       if ('vibrate' in navigator) navigator.vibrate(0);
     }
-
     return () => {
       if (beepIntervalRef.current) clearInterval(beepIntervalRef.current);
       if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
@@ -184,27 +139,20 @@ export default function App() {
   }, [alarmingScheduleId]);
 
   const todaysEvents = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
     const medicationEvents = todaysSchedule.map(item => ({ ...item, type: 'medication' as const }));
     const appointmentEvents = appointments
       .filter(app => app.dateTime.startsWith(todayStr))
       .map(app => ({
         ...app,
         type: 'appointment' as const,
-        time: app.dateTime.split('T')[1].substring(0, 5)
+        time: app.dateTime.split('T')[1]?.substring(0, 5) ?? '00:00',
       }));
-
-    const allEvents = [...medicationEvents, ...appointmentEvents];
-    allEvents.sort((a, b) => a.time.localeCompare(b.time));
-    return allEvents;
-  }, [todaysSchedule, appointments]);
+    return [...medicationEvents, ...appointmentEvents].sort((a, b) => a.time.localeCompare(b.time));
+  }, [todaysSchedule, appointments, todayStr]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ 
-        type: 'SET_SCHEDULE', 
-        schedule: todaysEvents 
-      });
+      navigator.serviceWorker.controller.postMessage({ type: 'SET_SCHEDULE', schedule: todaysEvents });
     }
   }, [todaysEvents]);
 
@@ -227,15 +175,15 @@ export default function App() {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [todaysSchedule, alarmingScheduleId]);
+  }, [todaysSchedule, alarmingScheduleId, medications]);
 
-  const handleAddMedication = (name: string, boxPhoto?: string, pillPhoto?: string) => {
+  // Handlers
+  const handleAddMedication = async (name: string, boxFile?: File, pillFile?: File) => {
     if (editingMedication) {
-      setMedications(prev => prev.map(m => m.id === editingMedication.id ? { ...m, name, boxPhoto, pillPhoto } : m));
+      await updateMedication(editingMedication.id, name, boxFile, pillFile, !boxFile, !pillFile);
       setEditingMedication(undefined);
     } else {
-      const newMedication: Medication = { id: `med${Date.now()}`, name, boxPhoto, pillPhoto };
-      setMedications(currentMeds => [...currentMeds, newMedication]);
+      await addMedication(name, boxFile, pillFile);
     }
     setCurrentView('medications');
   };
@@ -245,23 +193,8 @@ export default function App() {
     setCurrentView('addMedication');
   };
 
-  const handleDeleteMedication = (id: string) => {
-    setMedications(prev => prev.filter(m => m.id !== id));
-  };
-
-  const handleSavePlan = (planData: MedicationPlan) => {
-    setMedicationPlans(prevPlans => {
-      const existingIndex = prevPlans.findIndex(p => p.id === planData.id);
-      if (existingIndex > -1) {
-        // Update
-        const newPlans = [...prevPlans];
-        newPlans[existingIndex] = planData;
-        return newPlans;
-      } else {
-        // Add new
-        return [...prevPlans, planData];
-      }
-    });
+  const handleSavePlan = async (planData: Omit<MedicationPlan, 'userId' | 'createdAt'>) => {
+    await savePlan(planData);
     setEditingPlan(undefined);
     setCurrentView('planManager');
   };
@@ -271,82 +204,96 @@ export default function App() {
     setCurrentView('addPlan');
   };
 
-  const handleDeletePlan = (planId: string) => {
-    setMedicationPlans(prevPlans => prevPlans.filter(p => p.id !== planId));
+  const handleToggleTaken = async (scheduleItemId: string) => {
+    const item = todaysSchedule.find(i => i.id === scheduleItemId);
+    if (item && !item.taken) {
+      await logIntake(item.planId, item.medicationId, todayStr, item.time);
+      setToastMessage('Assunzione del farmaco registrata, Grazie');
+    }
   };
 
-  const handleAddSideEffect = (medicationId: string, description: string) => {
-    const newSideEffect: SideEffect = { id: `se${Date.now()}`, medicationId, description, timestamp: new Date().toISOString() };
-    setSideEffects(prev => [...prev, newSideEffect]);
-  };
+  const getMedicationName = (id: string) => medications.find(m => m.id === id)?.name || 'Sconosciuto';
 
-  const handleAddAppointment = (doctor: string, location: string, dateTime: string) => {
-    const newAppointment: Appointment = { id: `app${Date.now()}`, doctor, location, dateTime };
-    setAppointments(prev => [...prev, newAppointment]);
+  // Router viste
+  if (currentView === 'settings') return <SettingsPage onClose={() => setCurrentView('home')} />;
+  if (currentView === 'medications') return (
+    <MedicationList medications={medications} onAdd={() => { setEditingMedication(undefined); setCurrentView('addMedication'); }} onEdit={handleEditMedication} onDelete={deleteMedication} onClose={() => setCurrentView('home')} />
+  );
+  if (currentView === 'addMedication') return (
+    <AddMedication onAddMedication={handleAddMedication} onClose={() => { setEditingMedication(undefined); setCurrentView('medications'); }} existingMedication={editingMedication} />
+  );
+  if (currentView === 'addPlan') return (
+    <ScheduleMedication medications={medications} onSavePlan={handleSavePlan} onClose={() => { setEditingPlan(undefined); setCurrentView('planManager'); }} existingPlan={editingPlan} />
+  );
+  if (currentView === 'planManager') return (
+    <PlanManager plans={plans} medications={medications} onAddNew={() => { setEditingPlan(undefined); setCurrentView('addPlan'); }} onEdit={handleEditPlan} onDelete={deletePlan} onClose={() => setCurrentView('home')} />
+  );
+  if (currentView === 'history') return <HistoryLog logs={logs} medications={medications} onClose={() => setCurrentView('home')} />;
+  if (currentView === 'sideEffects') return (
+    <SideEffects medications={medications} sideEffects={sideEffects} onAddSideEffect={addSideEffect} onClose={() => setCurrentView('home')} />
+  );
+  if (currentView === 'appointments') return (
+    <Appointments appointments={appointments} onAddAppointment={handleAddAppointment} onClose={() => setCurrentView('home')} />
+  );
+
+  const alarmingSchedule = todaysSchedule.find(item => item.id === alarmingScheduleId);
+  const alarmingMedication = alarmingSchedule ? medications.find(m => m.id === alarmingSchedule.medicationId) : undefined;
+  const viewingSchedule = todaysSchedule.find(item => item.id === viewingScheduleId);
+  const viewingMedication = viewingSchedule ? medications.find(m => m.id === viewingSchedule.medicationId) : undefined;
+
+  async function handleAddAppointment(doctor: string, location: string, dateTime: string) {
+    await addAppointment(doctor, location, dateTime);
     setCurrentView('home');
     Notification.requestPermission().then(permission => {
       if (permission === 'granted') {
         const appointmentTime = new Date(dateTime).getTime();
         const notificationTime = appointmentTime - 60 * 60 * 1000;
-        const now = new Date().getTime();
+        const now = Date.now();
         if (notificationTime > now) {
           setTimeout(() => {
             new Notification('Promemoria Appuntamento', {
-              body: `Hai un appuntamento con Dr. ${doctor} tra un'ora presso ${location}.`,
-              icon: '/vite.svg'
+              body: `Appuntamento con Dr. ${doctor} tra un'ora presso ${location}.`,
+              icon: '/vite.svg',
             });
           }, notificationTime - now);
         }
       }
     });
-  };
-
-  const getMedicationName = (id: string) => medications.find(m => m.id === id)?.name || 'Sconosciuto';
-
-  const handleToggleTaken = (scheduleItemId: string) => {
-    const itemToLog = todaysSchedule.find(item => item.id === scheduleItemId);
-    if (itemToLog && !itemToLog.taken) {
-      const newLogEntry: IntakeLog = {
-        id: `log${Date.now()}`,
-        scheduleId: itemToLog.planId,
-        medicationId: itemToLog.medicationId,
-        timestamp: new Date().toISOString(),
-        scheduleTime: itemToLog.time,
-      };
-      setIntakeLog(prevLog => [...prevLog, newLogEntry]);
-      setToastMessage('Assunzione del farmaco registrata, Grazie');
-    }
-  };
-
-  if (currentView === 'medications') return <MedicationList medications={medications} onAdd={() => { setEditingMedication(undefined); setCurrentView('addMedication'); }} onEdit={handleEditMedication} onDelete={handleDeleteMedication} onClose={() => setCurrentView('home')} />;
-  if (currentView === 'addMedication') return <AddMedication onAddMedication={handleAddMedication} onClose={() => { setEditingMedication(undefined); setCurrentView('medications'); }} existingMedication={editingMedication} />;
-  if (currentView === 'addPlan') return <ScheduleMedication medications={medications} onSavePlan={handleSavePlan} onClose={() => { setEditingPlan(undefined); setCurrentView('planManager'); }} existingPlan={editingPlan} />;
-  if (currentView === 'planManager') return <PlanManager plans={medicationPlans} medications={medications} onAddNew={() => { setEditingPlan(undefined); setCurrentView('addPlan'); }} onEdit={handleEditPlan} onDelete={handleDeletePlan} onClose={() => setCurrentView('home')} />;
-  if (currentView === 'history') return <HistoryLog logs={intakeLog} medications={medications} onClose={() => setCurrentView('home')} />;
-  if (currentView === 'sideEffects') return <SideEffects medications={medications} sideEffects={sideEffects} onAddSideEffect={handleAddSideEffect} onClose={() => setCurrentView('home')} />;
-  if (currentView === 'appointments') return <Appointments appointments={appointments} onAddAppointment={handleAddAppointment} onClose={() => setCurrentView('home')} />;
-
-  const alarmingSchedule = todaysSchedule.find(item => item.id === alarmingScheduleId);
-  const alarmingMedication = alarmingSchedule ? medications.find(med => med.id === alarmingSchedule.medicationId) : undefined;
-  const viewingSchedule = todaysSchedule.find(item => item.id === viewingScheduleId);
-  const viewingMedication = viewingSchedule ? medications.find(med => med.id === viewingSchedule.medicationId) : undefined;
+  }
 
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
+      <OfflineBanner />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
-      {alarmingSchedule && alarmingMedication && <AlarmModal scheduleItem={alarmingSchedule} medication={alarmingMedication} onConfirm={() => { handleToggleTaken(alarmingSchedule.id); setAlarmingScheduleId(null); }} />}
-      {viewingSchedule && viewingMedication && <MedicationDetailModal scheduleItem={viewingSchedule} medication={viewingMedication} onClose={() => setViewingScheduleId(null)} onConfirm={() => { handleToggleTaken(viewingSchedule.id); setViewingScheduleId(null); }} />}
-      
+      {alarmingSchedule && alarmingMedication && (
+        <AlarmModal
+          scheduleItem={alarmingSchedule}
+          medication={alarmingMedication}
+          onConfirm={() => { handleToggleTaken(alarmingSchedule.id); setAlarmingScheduleId(null); }}
+        />
+      )}
+      {viewingSchedule && viewingMedication && (
+        <MedicationDetailModal
+          scheduleItem={viewingSchedule}
+          medication={viewingMedication}
+          onClose={() => setViewingScheduleId(null)}
+          onConfirm={() => { handleToggleTaken(viewingSchedule.id); setViewingScheduleId(null); }}
+        />
+      )}
+
       <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg">
         <h1 className="text-3xl font-serif text-center">MemoFarmaci</h1>
-        <p className="text-center text-lg opacity-90">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className="text-center text-lg opacity-90">
+          {new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </header>
 
       <main className="flex-grow p-6 overflow-y-auto">
         {currentView === 'home' && (
           <button
             onClick={() => setCurrentView('planManager')}
-            className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4">
+            className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4"
+          >
             <Bell size={28} />
             Gestione Piani
           </button>
@@ -355,37 +302,30 @@ export default function App() {
           {todaysEvents.map(item => {
             if (item.type === 'medication' && !item.taken) {
               const now = new Date();
-              const [itemHours, itemMinutes] = item.time.split(':').map(Number);
-              const itemDate = new Date();
-              itemDate.setHours(itemHours, itemMinutes, 0, 0);
-
+              const [h, m] = item.time.split(':').map(Number);
+              const itemDate = new Date(); itemDate.setHours(h, m, 0, 0);
               const timeDiffMs = now.getTime() - itemDate.getTime();
               const isPastDue = now >= itemDate;
               const isLate = isPastDue && timeDiffMs > 30 * 60 * 1000;
 
-              let buttonClasses = 'px-6 py-4 rounded-full text-white text-lg font-bold shadow-lg transition-transform transform active:scale-95';
-              let buttonDisabled = false;
+              let btnClass = 'px-6 py-4 rounded-full text-white text-lg font-bold shadow-lg transition-transform transform active:scale-95';
+              let disabled = false;
+              if (isLate) { btnClass += ' bg-red-600 hover:bg-red-700 animate-pulse'; }
+              else if (isPastDue) { btnClass += ' bg-green-600 hover:bg-green-700'; }
+              else { btnClass += ' bg-gray-400 cursor-not-allowed'; disabled = true; }
 
-              if (isLate) {
-                buttonClasses += ' bg-red-600 hover:bg-red-700 animate-pulse';
-              } else if (isPastDue) {
-                buttonClasses += ' bg-green-600 hover:bg-green-700';
-              } else {
-                buttonClasses += ' bg-gray-400 cursor-not-allowed';
-                buttonDisabled = true;
-              }
-
+              const boxPhoto = medications.find(m => m.id === item.medicationId)?.boxPhoto;
               return (
-                <div key={item.id} className={'p-6 rounded-2xl shadow-md flex items-center justify-between transition-all bg-amber-50'}>
+                <div key={item.id} className="p-6 rounded-2xl shadow-md flex items-center justify-between transition-all bg-amber-50">
                   <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
-                    {medications.find(m => m.id === item.medicationId)?.boxPhoto && <img src={medications.find(m => m.id === item.medicationId)?.boxPhoto} alt="Scatola" className="w-16 h-16 object-cover rounded-lg shadow-sm" />}
+                    {boxPhoto && <img src={boxPhoto} alt="Scatola" className="w-16 h-16 object-cover rounded-lg shadow-sm" />}
                     <div>
                       <p className="text-2xl font-bold text-slate-800">{item.time}</p>
                       <p className="text-xl text-slate-700">{getMedicationName(item.medicationId)}</p>
                       <p className="text-lg text-slate-500">{item.dosage}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleToggleTaken(item.id)} className={buttonClasses} disabled={buttonDisabled}>
+                  <button onClick={() => handleToggleTaken(item.id)} className={btnClass} disabled={disabled}>
                     Conferma
                   </button>
                 </div>
@@ -407,12 +347,13 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl shadow-inner-top">
-        <button onClick={() => setCurrentView('home')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={32} /></button>
-        <button onClick={() => setCurrentView('appointments')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={32} /></button>
-        <button onClick={() => setCurrentView('history')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={32} /></button>
-        <button onClick={() => setCurrentView('sideEffects')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={32} /></button>
-        <button onClick={() => setCurrentView('medications')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Pill size={32} /></button>
+      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl">
+        <button onClick={() => setCurrentView('home')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={28} /></button>
+        <button onClick={() => setCurrentView('appointments')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={28} /></button>
+        <button onClick={() => setCurrentView('history')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={28} /></button>
+        <button onClick={() => setCurrentView('sideEffects')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={28} /></button>
+        <button onClick={() => setCurrentView('medications')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Pill size={28} /></button>
+        <button onClick={() => setCurrentView('settings')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Settings size={28} /></button>
       </footer>
     </div>
   );

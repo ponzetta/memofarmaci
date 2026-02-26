@@ -1,52 +1,84 @@
+// ============================================================
+// MemoFarmaci - Tipi condivisi
+// ============================================================
+
+export interface UserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  birthDate?: string;             // YYYY-MM-DD
+  postalCode?: string;
+  caregiverName?: string;
+  caregiverPhone?: string;
+  caregiverEmail?: string;
+  alertEmailEnabled: boolean;
+  alertTelegramUserEnabled: boolean;
+  alertTelegramCaregiverEnabled: boolean;
+  telegramUserChatId?: string;
+  telegramCaregiverChatId?: string;
+  missedDoseAlertHours: number;
+  profileCompleted: boolean;
+}
+
 export interface Medication {
   id: string;
+  userId: string;
   name: string;
-  boxPhoto?: string; // Base64 encoded image
-  pillPhoto?: string; // Base64 encoded image
+  boxPhotoPath?: string;   // path in Supabase Storage
+  pillPhotoPath?: string;
+  boxPhoto?: string;       // URL firmato per la visualizzazione
+  pillPhoto?: string;      // URL firmato per la visualizzazione
+  createdAt?: string;
 }
 
 export type Frequency = 'daily' | 'alternate';
 
-// Rappresenta il piano di una terapia nel tempo
 export interface MedicationPlan {
   id: string;
+  userId: string;
   medicationId: string;
-  time: string; // HH:MM format
+  time: string;            // HH:MM
   dosage: string;
   frequency: Frequency;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
+  startDate: string;       // YYYY-MM-DD
+  endDate: string;         // YYYY-MM-DD
+  createdAt?: string;
 }
 
-// Rappresenta un farmaco da prendere oggi (generato dinamicamente)
 export interface TodaysScheduleItem {
-    id: string; // id unico per la voce di oggi (es. plan.id + data)
-    planId: string;
-    medicationId: string;
-    time: string;
-    dosage: string;
-    taken: boolean;
+  id: string;             // "{planId}-{todayStr}"
+  planId: string;
+  medicationId: string;
+  time: string;
+  dosage: string;
+  taken: boolean;
 }
 
 export interface IntakeLog {
   id: string;
-  scheduleId: string; // Corrisponde a MedicationPlan.id
+  userId: string;
+  planId: string;
   medicationId: string;
-  timestamp: string; // ISO 8601 format
-  scheduleTime: string; // HH:MM, per distinguere dosi diverse nello stesso giorno
+  scheduleTime: string;    // HH:MM
+  scheduleDate: string;    // YYYY-MM-DD
+  takenAt?: string;        // ISO 8601
 }
 
 export interface SideEffect {
   id: string;
+  userId: string;
   medicationId: string;
   description: string;
-  timestamp: string; // ISO 8601 format
+  occurredAt: string;      // ISO 8601
 }
 
 export interface Appointment {
   id: string;
+  userId: string;
   doctor: string;
   location: string;
-  dateTime: string; // ISO 8601 format
+  dateTime: string;        // ISO 8601
+  createdAt?: string;
 }
-

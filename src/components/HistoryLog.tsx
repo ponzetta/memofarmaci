@@ -36,7 +36,7 @@ export default function HistoryLog({ logs, medications, onClose }: HistoryLogPro
             {logs.slice().reverse().map(log => (
               <li key={log.id} className="bg-gray-50 p-4 rounded-lg shadow-sm">
                 <p className="font-bold text-lg text-slate-700">{getMedicationName(log.medicationId)}</p>
-                <p className="text-slate-600">Preso il: {formatTimestamp(log.timestamp)}</p>
+                <p className="text-slate-600">Preso il: {formatTimestamp(log.takenAt ?? log.scheduleDate)}</p>
               </li>
             ))}
           </ul>

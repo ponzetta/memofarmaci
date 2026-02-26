@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { Medication, Frequency, MedicationPlan } from '../types';
 
+type PlanDraft = Omit<MedicationPlan, 'userId' | 'createdAt'>;
+
 interface ScheduleMedicationProps {
   medications: Medication[];
-  onSavePlan: (plan: MedicationPlan) => void;
+  onSavePlan: (plan: PlanDraft) => void;
   onClose: () => void;
   existingPlan?: MedicationPlan;
 }
