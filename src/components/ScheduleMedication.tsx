@@ -5,7 +5,7 @@ type PlanDraft = Omit<MedicationPlan, 'userId' | 'createdAt'>;
 
 interface ScheduleMedicationProps {
   medications: Medication[];
-  onSavePlan: (plan: PlanDraft) => void;
+  onSavePlan: (plan: PlanDraft) => Promise<void>;
   onClose: () => void;
   existingPlan?: MedicationPlan;
 }
@@ -19,9 +19,10 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
   const [startDate, setStartDate] = useState(existingPlan?.startDate || new Date().toISOString().split('T')[0]);
   const [noEndDate, setNoEndDate] = useState(existingPlan?.endDate === NO_END_DATE || !existingPlan?.endDate);
   const [endDate, setEndDate] = useState(existingPlan?.endDate && existingPlan.endDate !== NO_END_DATE ? existingPlan.endDate : '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const resolvedEndDate = noEndDate ? NO_END_DATE : endDate;
     if (!selectedMed || !time || !dosage.trim() || !startDate) {
       alert('Per favore, compila tutti i campi obbligatori.');
@@ -35,15 +36,23 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
       alert('La data di inizio non può essere successiva alla data di fine.');
       return;
     }
-    onSavePlan({
-      id: existingPlan?.id || `p${Date.now()}`,
-      medicationId: selectedMed,
-      time,
-      dosage: dosage.trim(),
-      frequency,
-      startDate,
-      endDate: resolvedEndDate,
-    });
+    setSaving(true);
+    setError(null);
+    try {
+      await onSavePlan({
+        id: existingPlan?.id || `p${Date.now()}`,
+        medicationId: selectedMed,
+        time,
+        dosage: dosage.trim(),
+        frequency,
+        startDate,
+        endDate: resolvedEndDate,
+      });
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Errore nel salvataggio. Riprova.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -52,6 +61,7 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
         <h2 className="text-3xl font-serif text-slate-800">{existingPlan ? 'Modifica Piano' : 'Pianifica Farmaco'}</h2>
         <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
       </header>
+      {error && <div className="mx-6 mb-2 bg-red-50 text-red-700 p-3 rounded-xl text-sm">{error}</div>}
       <main className="flex-grow flex flex-col justify-center space-y-4">
         <div>
           <label className="block text-lg font-medium text-slate-600 mb-2">Farmaco</label>
@@ -111,11 +121,12 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
           >
             Annulla
           </button>
-          <button 
+          <button
             onClick={handleSubmit}
-            className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 transition-all transform active:scale-95"
+            disabled={saving}
+            className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
           >
-            {existingPlan ? 'Salva Modifiche' : 'Aggiungi al Piano'}
+            {saving ? 'Salvataggio...' : existingPlan ? 'Salva Modifiche' : 'Aggiungi al Piano'}
           </button>
         </div>
       </footer>

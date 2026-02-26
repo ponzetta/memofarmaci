@@ -201,6 +201,7 @@ export default function App() {
     await savePlan(planData);
     setEditingPlan(undefined);
     setCurrentView('planManager');
+    setToastMessage(planData.id && plans.some(p => p.id === planData.id) ? 'Piano aggiornato!' : 'Piano aggiunto!');
   };
 
   const handleEditPlan = (plan: MedicationPlan) => {
