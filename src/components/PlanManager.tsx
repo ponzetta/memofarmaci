@@ -17,19 +17,25 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
 
   return (
     <div className="w-full h-full bg-white p-6 flex flex-col">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-center mb-4">
         <h2 className="text-3xl font-serif text-slate-800">Gestione Piani</h2>
         <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
       </header>
 
+      <div className="mb-4 flex gap-4">
+        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all">
+          Chiudi
+        </button>
+        <button onClick={onAddNew} className="w-full bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 flex items-center justify-center gap-2">
+          <Plus size={22} />
+          Aggiungi
+        </button>
+      </div>
+
       <main className="flex-grow overflow-y-auto">
         {plans.length === 0 ? (
-          <div className="text-center">
-            <p className="text-slate-500 mb-4">Nessun piano terapeutico trovato.</p>
-            <button onClick={onAddNew} className="bg-[#5A5A40] text-white font-bold py-3 px-6 rounded-lg inline-flex items-center gap-2">
-              <Plus size={20} />
-              Aggiungi Piano
-            </button>
+          <div className="text-center py-10">
+            <p className="text-slate-500">Nessun piano terapeutico trovato.</p>
           </div>
         ) : (
           <ul className="space-y-4">
@@ -53,19 +59,6 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
           </ul>
         )}
       </main>
-
-      {plans.length > 0 && (
-        <footer className="mt-auto pt-4">
-          <div className="flex gap-4">
-            <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-5 rounded-2xl hover:bg-gray-300 transition-all">
-              Chiudi
-            </button>
-            <button onClick={onAddNew} className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90">
-              Aggiungi Nuovo Piano
-            </button>
-          </div>
-        </footer>
-      )}
     </div>
   );
 }

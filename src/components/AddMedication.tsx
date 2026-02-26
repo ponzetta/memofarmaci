@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import type React from 'react';
 import { Camera, Pill } from 'lucide-react';
+import type { Medication } from '../types';
 
 interface AddMedicationProps {
   onAddMedication: (name: string, boxPhoto?: string, pillPhoto?: string) => void;
   onClose: () => void;
+  existingMedication?: Medication;
 }
 
-export default function AddMedication({ onAddMedication, onClose }: AddMedicationProps) {
-  const [name, setName] = useState('');
-  const [boxPhoto, setBoxPhoto] = useState<string | undefined>();
-  const [pillPhoto, setPillPhoto] = useState<string | undefined>();
+export default function AddMedication({ onAddMedication, onClose, existingMedication }: AddMedicationProps) {
+  const [name, setName] = useState(existingMedication?.name ?? '');
+  const [boxPhoto, setBoxPhoto] = useState<string | undefined>(existingMedication?.boxPhoto);
+  const [pillPhoto, setPillPhoto] = useState<string | undefined>(existingMedication?.pillPhoto);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
     const file = e.target.files?.[0];
@@ -34,7 +36,7 @@ export default function AddMedication({ onAddMedication, onClose }: AddMedicatio
   return (
     <div className="w-full h-full bg-white p-6 flex flex-col">
       <header className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif text-slate-800">Nuovo Farmaco</h2>
+        <h2 className="text-3xl font-serif text-slate-800">{existingMedication ? 'Modifica Farmaco' : 'Nuovo Farmaco'}</h2>
         <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
       </header>
       <main className="flex-grow flex flex-col justify-center">
@@ -90,7 +92,7 @@ export default function AddMedication({ onAddMedication, onClose }: AddMedicatio
             onClick={handleSubmit}
             className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 transition-all transform active:scale-95"
           >
-            Salva Farmaco
+            {existingMedication ? 'Salva Modifiche' : 'Salva Farmaco'}
           </button>
         </div>
       </footer>

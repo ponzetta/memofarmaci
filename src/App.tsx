@@ -3,10 +3,11 @@ import useLocalStorage from './hooks/useLocalStorage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import Toast from './components/Toast';
 import type { IntakeLog, SideEffect, Appointment, MedicationPlan, TodaysScheduleItem, Frequency, Medication } from './types';
-import { Plus, Bell, Home, FileHeart, CalendarPlus, CalendarClock } from 'lucide-react';
+import { Bell, Home, FileHeart, CalendarPlus, CalendarClock, Pill } from 'lucide-react';
 import AddMedication from './components/AddMedication';
 import ScheduleMedication from './components/ScheduleMedication';
 import PlanManager from './components/PlanManager';
+import MedicationList from './components/MedicationList';
 import AlarmModal from './components/AlarmModal';
 import HistoryLog from './components/HistoryLog';
 import SideEffects from './components/SideEffects';
@@ -43,8 +44,9 @@ const MOCK_PLANS: MedicationPlan[] = [
 export default function App() {
   const [medications, setMedications] = useLocalStorage<Medication[]>('medications', MOCK_MEDICATIONS);
   const [medicationPlans, setMedicationPlans] = useLocalStorage<MedicationPlan[]>('medicationPlans', MOCK_PLANS);
-  const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'addMedication' | 'addPlan' | 'history' | 'sideEffects' | 'appointments' | 'planManager' | 'medications'>('home');
   const [editingPlan, setEditingPlan] = useState<MedicationPlan | undefined>(undefined);
+  const [editingMedication, setEditingMedication] = useState<Medication | undefined>(undefined);
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   const [sideEffects, setSideEffects] = useLocalStorage<SideEffect[]>('sideEffects', []);
   const [intakeLog, setIntakeLog] = useLocalStorage<IntakeLog[]>('intakeLog', []);
@@ -228,9 +230,23 @@ export default function App() {
   }, [todaysSchedule, alarmingScheduleId]);
 
   const handleAddMedication = (name: string, boxPhoto?: string, pillPhoto?: string) => {
-    const newMedication: Medication = { id: (medications.length + 1).toString(), name, boxPhoto, pillPhoto };
-    setMedications(currentMeds => [...currentMeds, newMedication]);
-    setCurrentView('home');
+    if (editingMedication) {
+      setMedications(prev => prev.map(m => m.id === editingMedication.id ? { ...m, name, boxPhoto, pillPhoto } : m));
+      setEditingMedication(undefined);
+    } else {
+      const newMedication: Medication = { id: `med${Date.now()}`, name, boxPhoto, pillPhoto };
+      setMedications(currentMeds => [...currentMeds, newMedication]);
+    }
+    setCurrentView('medications');
+  };
+
+  const handleEditMedication = (med: Medication) => {
+    setEditingMedication(med);
+    setCurrentView('addMedication');
+  };
+
+  const handleDeleteMedication = (id: string) => {
+    setMedications(prev => prev.filter(m => m.id !== id));
   };
 
   const handleSavePlan = (planData: MedicationPlan) => {
@@ -302,7 +318,8 @@ export default function App() {
     }
   };
 
-  if (currentView === 'addMedication') return <AddMedication onAddMedication={handleAddMedication} onClose={() => setCurrentView('home')} />;
+  if (currentView === 'medications') return <MedicationList medications={medications} onAdd={() => { setEditingMedication(undefined); setCurrentView('addMedication'); }} onEdit={handleEditMedication} onDelete={handleDeleteMedication} onClose={() => setCurrentView('home')} />;
+  if (currentView === 'addMedication') return <AddMedication onAddMedication={handleAddMedication} onClose={() => { setEditingMedication(undefined); setCurrentView('medications'); }} existingMedication={editingMedication} />;
   if (currentView === 'addPlan') return <ScheduleMedication medications={medications} onSavePlan={handleSavePlan} onClose={() => { setEditingPlan(undefined); setCurrentView('planManager'); }} existingPlan={editingPlan} />;
   if (currentView === 'planManager') return <PlanManager plans={medicationPlans} medications={medications} onAddNew={() => { setEditingPlan(undefined); setCurrentView('addPlan'); }} onEdit={handleEditPlan} onDelete={handleDeletePlan} onClose={() => setCurrentView('home')} />;
   if (currentView === 'history') return <HistoryLog logs={intakeLog} medications={medications} onClose={() => setCurrentView('home')} />;
@@ -327,13 +344,13 @@ export default function App() {
 
       <main className="flex-grow p-6 overflow-y-auto">
         {currentView === 'home' && (
-          <button 
-            onClick={() => setCurrentView('addMedication')} 
+          <button
+            onClick={() => setCurrentView('planManager')}
             className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4">
-            <Plus size={28} />
-            Aggiungi Farmaco
+            <Bell size={28} />
+            Gestione Piani
           </button>
-      )}
+        )}
         <div className="space-y-4">
           {todaysEvents.map(item => {
             if (item.type === 'medication' && !item.taken) {
@@ -395,7 +412,7 @@ export default function App() {
         <button onClick={() => setCurrentView('appointments')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={32} /></button>
         <button onClick={() => setCurrentView('history')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={32} /></button>
         <button onClick={() => setCurrentView('sideEffects')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={32} /></button>
-        <button onClick={() => setCurrentView('planManager')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Bell size={32} /></button>
+        <button onClick={() => setCurrentView('medications')} className="p-4 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Pill size={32} /></button>
       </footer>
     </div>
   );
