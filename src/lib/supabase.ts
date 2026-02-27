@@ -8,4 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Variabili VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY non configurate');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Bypassa navigator.locks per evitare timeout "LockManager timed out 10000ms"
+// che si verificano con Service Worker o tab multiple aperte.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
+  },
+});
