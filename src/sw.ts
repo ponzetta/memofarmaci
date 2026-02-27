@@ -78,11 +78,24 @@ self.addEventListener('push', event => {
       vibrate,
     } as NotificationOptions);
 
-    // Se l'app è aperta (anche in background), invia messaggio per suonare l'allarme
+    // Gestisce 3 scenari: app chiusa → aprila, app in background → portala in primo piano, app visibile → solo ALARM_PUSH
     const msgPromise = data.planId
-      ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients =>
-          clients.forEach(c => c.postMessage({ type: 'ALARM_PUSH', planId: data.planId }))
-        )
+      ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async clients => {
+          if (clients.length === 0) {
+            // App chiusa → aprila con planId in URL
+            try { await self.clients.openWindow(`/?alarm=${data.planId}`); } catch {}
+          } else {
+            const visible = clients.find(c => c.visibilityState === 'visible');
+            if (visible) {
+              // App già visibile → solo ALARM_PUSH
+              visible.postMessage({ type: 'ALARM_PUSH', planId: data.planId });
+            } else {
+              // App in background → porta in primo piano + ALARM_PUSH
+              try { await clients[0].focus(); } catch {}
+              clients[0].postMessage({ type: 'ALARM_PUSH', planId: data.planId });
+            }
+          }
+        })
       : Promise.resolve();
 
     event.waitUntil(Promise.all([notifPromise, msgPromise]));

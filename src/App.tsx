@@ -160,6 +160,20 @@ export default function App() {
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, [todaysSchedule, alarmingScheduleId]);
 
+  // Legge ?alarm=planId dall'URL quando l'app viene aperta dal Service Worker (app era chiusa)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const planId = params.get('alarm');
+    if (!planId || todaysSchedule.length === 0) return;
+    const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
+    if (item && !alarmingScheduleId) {
+      setAlarmingScheduleId(item.id);
+      window.history.replaceState({}, '', '/');
+    }
+  // alarmingScheduleId escluso intenzionalmente: il check deve avvenire solo al primo load dei dati
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaysSchedule]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();

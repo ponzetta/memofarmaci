@@ -127,6 +127,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         }
       }
+
+      // Opzione A — Messaggio Telegram all'orario della dose (una sola volta, con deduplication)
+      if (process.env.TELEGRAM_BOT_TOKEN) {
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('telegram_user_chat_id')
+          .eq('id', plan.user_id)
+          .maybeSingle();
+
+        const chatId = (userProfile as { telegram_user_chat_id: string | null } | null)?.telegram_user_chat_id;
+        if (chatId) {
+          const { data: alreadySent } = await supabase
+            .from('alert_sent_log')
+            .select('id')
+            .eq('plan_id', plan.id)
+            .eq('schedule_date', todayStr)
+            .eq('schedule_time', plan.time)
+            .eq('channel', 'telegram_user_reminder')
+            .maybeSingle();
+
+          if (!alreadySent) {
+            try {
+              const tgRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  text: `💊 *Ora dei farmaci!*\n\nÈ ora di prendere *${medName}*.\n\nApri MemoFarmaci per confermare la dose.`,
+                  parse_mode: 'Markdown',
+                }),
+              });
+              if (tgRes.ok) {
+                await supabase.from('alert_sent_log').insert({
+                  user_id: plan.user_id,
+                  plan_id: plan.id,
+                  schedule_date: todayStr,
+                  schedule_time: plan.time,
+                  channel: 'telegram_user_reminder',
+                }).select();
+                results.push({ type: 'telegram_user_reminder', planId: plan.id, ok: true });
+              }
+            } catch {}
+          }
+        }
+      }
     }
   }
 
