@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { useMedications } from './hooks/useMedications';
 import { useMedicationPlans } from './hooks/useMedicationPlans';
 import { useIntakeLogs } from './hooks/useIntakeLogs';
@@ -64,7 +65,9 @@ export default function App() {
     taken: isTakenToday(plan.id, plan.time, todayStr),
   }));
 
-  usePushNotifications();
+  // Ref per il callback di allarme FCM — aggiornato ad ogni render
+  const onAlarmRef = useRef<((planId: string) => void) | undefined>(undefined);
+  usePushNotifications(undefined, (planId: string) => onAlarmRef.current?.(planId));
 
   // Blocca tasto ← Android
   useEffect(() => {
@@ -80,6 +83,12 @@ export default function App() {
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
 
+  // Aggiorna il callback FCM/nativo con i valori correnti
+  onAlarmRef.current = (planId: string) => {
+    const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
+    if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+  };
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainRef = useRef<GainNode | null>(null);
@@ -90,6 +99,8 @@ export default function App() {
     if (alarmingScheduleId) {
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
+      // Android richiede resume() esplicito prima di usare AudioContext
+      if (ctx.state === 'suspended') ctx.resume();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -173,6 +184,19 @@ export default function App() {
   // alarmingScheduleId escluso intenzionalmente: il check deve avvenire solo al primo load dei dati
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
+
+  // Deep link nativo Capacitor: tap su notifica FCM → apre alarm modal
+  useEffect(() => {
+    const listenerPromise = CapApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const planId = new URL(url).searchParams.get('alarm');
+        if (!planId || !todaysSchedule.length) return;
+        const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
+        if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+      } catch {}
+    });
+    return () => { listenerPromise.then(h => h.remove()); };
+  }, [todaysSchedule, alarmingScheduleId]);
 
   useEffect(() => {
     const interval = setInterval(() => {

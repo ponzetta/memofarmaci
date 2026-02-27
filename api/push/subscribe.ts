@@ -29,27 +29,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Token non valido' });
   }
 
-  const { deviceId, subscription } = req.body as {
+  const body = req.body as {
     deviceId: string;
-    subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+    // FCM nativo (Android/iOS)
+    fcmToken?: string;
+    platform?: 'android' | 'ios';
+    // Web Push (browser)
+    subscription?: { endpoint: string; keys: { p256dh: string; auth: string } };
   };
 
-  if (!deviceId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
-    return res.status(400).json({ error: 'deviceId e subscription completa richiesti' });
+  const { deviceId, fcmToken, platform, subscription } = body;
+
+  if (!deviceId) {
+    return res.status(400).json({ error: 'deviceId richiesto' });
+  }
+
+  let upsertData: Record<string, unknown>;
+
+  if (fcmToken) {
+    // Modalità FCM nativa
+    upsertData = {
+      user_id: user.id,
+      device_id: deviceId,
+      fcm_token: fcmToken,
+      platform: platform ?? 'android',
+      endpoint: null,
+      p256dh: null,
+      auth_key: null,
+    };
+  } else if (subscription?.endpoint && subscription?.keys?.p256dh && subscription?.keys?.auth) {
+    // Modalità Web Push (browser)
+    upsertData = {
+      user_id: user.id,
+      device_id: deviceId,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth_key: subscription.keys.auth,
+      platform: 'web',
+      fcm_token: null,
+    };
+  } else {
+    return res.status(400).json({ error: 'fcmToken oppure subscription completa richiesti' });
   }
 
   const { error } = await supabaseAdmin
     .from('push_subscriptions')
-    .upsert(
-      {
-        user_id: user.id,
-        device_id: deviceId,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth_key: subscription.keys.auth,
-      },
-      { onConflict: 'user_id,device_id' }
-    );
+    .upsert(upsertData, { onConflict: 'user_id,device_id' });
 
   if (error) {
     console.error('Errore upsert push_subscriptions:', error);

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "854850032682",
+    "project_id": "memofarmaci",
+    "storage_bucket": "memofarmaci.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:854850032682:android:759627fcaddf8741839f53",
+        "android_client_info": {
+          "package_name": "it.memofarmaci.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlt7Zr0v7FLzaDzQFv6p8klh0kFEM7rYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
