@@ -29,7 +29,19 @@ async function doSubscribe(): Promise<void> {
   if (!publicKey) return;
 
   const reg = await navigator.serviceWorker.ready;
+
+  // Forza una subscription fresca se la chiave VAPID è cambiata o la sub è scaduta
   let sub = await reg.pushManager.getSubscription();
+  if (sub) {
+    const existingKey = sub.options?.applicationServerKey;
+    const newKey = urlBase64ToUint8Array(publicKey);
+    const keysMatch = existingKey && existingKey.byteLength === newKey.byteLength &&
+      new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === newKey[i]);
+    if (!keysMatch) {
+      await sub.unsubscribe();
+      sub = null;
+    }
+  }
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
