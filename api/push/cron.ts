@@ -87,21 +87,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle();
       if (takenLog) continue;
 
-      // Recupera push subscriptions dell'utente
-      const { data: subs } = await supabase
-        .from('push_subscriptions')
-        .select('endpoint, p256dh, auth_key, device_id')
-        .eq('user_id', plan.user_id);
-
-      if (!subs || subs.length === 0) continue;
-
       const medName = (plan.medications as { name: string }).name;
       const minutesSince = totalMinutes - (parseInt(plan.time.split(':')[0]) * 60 + parseInt(plan.time.split(':')[1]));
       const body = minutesSince <= 0
         ? `Ricordati di prendere ${medName}`
         : `${medName} non ancora assunto (${minutesSince} min fa)`;
 
-      for (const sub of subs as Array<{ endpoint: string; p256dh: string; auth_key: string; device_id: string }>) {
+      // Recupera push subscriptions — indipendente da Telegram, non skippa il piano se vuoto
+      const { data: subs } = await supabase
+        .from('push_subscriptions')
+        .select('endpoint, p256dh, auth_key, device_id')
+        .eq('user_id', plan.user_id);
+
+      for (const sub of (subs ?? []) as Array<{ endpoint: string; p256dh: string; auth_key: string; device_id: string }>) {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
