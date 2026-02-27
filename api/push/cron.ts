@@ -152,7 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   chat_id: chatId,
-                  text: `💊 *Ora dei farmaci!*\n\nÈ ora di prendere *${medName}*.\n\nApri MemoFarmaci per confermare la dose.`,
+                  text: `💊 *Ora dei farmaci!*\n\nÈ ora di prendere *${medName}*.\n\n[Apri MemoFarmaci](${process.env.VITE_APP_URL ?? 'https://memofarmaci-wm25.vercel.app'}/?alarm=${plan.id})`,
                   parse_mode: 'Markdown',
                 }),
               });
