@@ -78,15 +78,30 @@ export default function App() {
     StatusBar.setStyle({ style: Style.Dark });
   }, []);
 
-  // Blocca tasto ← Android
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // Tasto ← Android: su Capacitor intercetta l'evento nativo
   useEffect(() => {
-    history.pushState({ pwa: true }, '');
-    const onPopState = () => {
-      if (currentView !== 'home') setCurrentView('home');
+    if (!Capacitor.isNativePlatform()) {
+      // Browser/PWA: gestione via popstate
       history.pushState({ pwa: true }, '');
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
+      const onPopState = () => {
+        if (currentView !== 'home') setCurrentView('home');
+        history.pushState({ pwa: true }, '');
+      };
+      window.addEventListener('popstate', onPopState);
+      return () => window.removeEventListener('popstate', onPopState);
+    }
+
+    // App nativa: intercetta backButton di Capacitor
+    const listenerPromise = CapApp.addListener('backButton', () => {
+      if (currentView !== 'home') {
+        setCurrentView('home');
+      } else {
+        setShowExitConfirm(true);
+      }
+    });
+    return () => { listenerPromise.then(h => h.remove()); };
   }, [currentView]);
 
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
@@ -317,6 +332,28 @@ export default function App() {
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
       <OfflineBanner />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col gap-4">
+            <h2 className="text-xl font-bold text-slate-800">Sospendi MemoFarmaci?</h2>
+            <p className="text-slate-500">L'app rimarrà attiva in background e continuerà a inviarti i promemoria.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="px-5 py-2 rounded-xl text-slate-600 hover:bg-gray-100 font-medium"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => { setShowExitConfirm(false); CapApp.minimizeApp(); }}
+                className="px-5 py-2 rounded-xl bg-[#5A5A40] text-white font-medium hover:bg-opacity-90"
+              >
+                Sospendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {alarmingSchedule && alarmingMedication && (
         <AlarmModal
           scheduleItem={alarmingSchedule}
