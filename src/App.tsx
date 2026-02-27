@@ -392,7 +392,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl">
+      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <button onClick={() => setCurrentView('home')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={28} /></button>
         <button onClick={() => setCurrentView('appointments')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={28} /></button>
         <button onClick={() => setCurrentView('history')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={28} /></button>
