@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { supabase } from '../lib/supabase';
 
 // App Link HTTPS — Android lo intercetta direttamente senza passare per Chrome
@@ -71,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Android intercetta questo URL HTTPS e lo passa qui senza aprire Chrome
       CapApp.addListener('appUrlOpen', async ({ url }) => {
         if (!url.startsWith(OAUTH_REDIRECT_NATIVE)) return;
-        await Browser.close().catch(() => {});
         const code = new URL(url).searchParams.get('code');
         if (code) {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -115,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
       });
       if (!error && data?.url) {
-        await Browser.open({ url: data.url });
+        window.open(data.url, '_system');
       }
     } else {
       await supabase.auth.signInWithOAuth({
@@ -132,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
       });
       if (!error && data?.url) {
-        await Browser.open({ url: data.url });
+        window.open(data.url, '_system');
       }
     } else {
       await supabase.auth.signInWithOAuth({
