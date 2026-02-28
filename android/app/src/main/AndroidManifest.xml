@@ -19,12 +19,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Deep link per OAuth redirect (Supabase) -->
-            <intent-filter android:autoVerify="false">
+            <!-- App Link HTTPS per OAuth callback — Android intercetta automaticamente
+                 senza passare per Chrome, a differenza dei custom schemes -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="it.memofarmaci.app" />
+                <data android:scheme="https"
+                      android:host="memofarmaci-wm25.vercel.app"
+                      android:pathPrefix="/auth/callback" />
             </intent-filter>
         </activity>
 

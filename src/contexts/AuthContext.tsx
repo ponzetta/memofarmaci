@@ -2,8 +2,11 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Browser } from '@capacitor/browser';
 import { supabase } from '../lib/supabase';
+
+// App Link HTTPS — Android lo intercetta direttamente senza passare per Chrome
+const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/auth/callback';
 
 interface AuthContextValue {
   user: User | null;
@@ -46,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Su Android: aggiorna la sessione quando l'app torna in foreground
     let appStateListener: { remove: () => void } | null = null;
+    let appUrlListener: { remove: () => void } | null = null;
+
     if (Capacitor.isNativePlatform()) {
+      // Aggiorna sessione quando l'app torna in foreground
       CapApp.addListener('appStateChange', async ({ isActive }) => {
         if (!isActive) return;
         const { data: { session: refreshed } } = await supabase.auth.getSession();
@@ -61,11 +66,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       }).then(handle => { appStateListener = handle; });
+
+      // Gestisce App Link OAuth: https://memofarmaci-wm25.vercel.app/auth/callback?code=xxx
+      // Android intercetta questo URL HTTPS e lo passa qui senza aprire Chrome
+      CapApp.addListener('appUrlOpen', async ({ url }) => {
+        if (!url.startsWith(OAUTH_REDIRECT_NATIVE)) return;
+        await Browser.close().catch(() => {});
+        const code = new URL(url).searchParams.get('code');
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+            checkProfileCompleted(data.session.user.id);
+          } else {
+            console.error('[MF] exchangeCodeForSession error:', error?.message);
+          }
+        }
+      }).then(handle => { appUrlListener = handle; });
     }
 
     return () => {
       subscription.unsubscribe();
       appStateListener?.remove();
+      appUrlListener?.remove();
     };
   }, []);
 
@@ -86,22 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signInWithGoogle() {
     if (Capacitor.isNativePlatform()) {
-      try {
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        const idToken = result.credential?.idToken;
-        if (!idToken) { console.error('[MF] idToken Firebase mancante'); return; }
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: idToken,
-        });
-        if (error) { console.error('[MF] Supabase signInWithIdToken error:', error.message); return; }
-        if (data.session) {
-          setSession(data.session);
-          setUser(data.session.user);
-          checkProfileCompleted(data.session.user.id);
-        }
-      } catch (e) {
-        console.error('[MF] Errore signInWithGoogle:', e);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+      });
+      if (!error && data?.url) {
+        await Browser.open({ url: data.url });
       }
     } else {
       await supabase.auth.signInWithOAuth({
@@ -112,16 +126,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithFacebook() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo: window.location.origin },
-    });
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+      });
+      if (!error && data?.url) {
+        await Browser.open({ url: data.url });
+      }
+    } else {
+      await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: window.location.origin },
+      });
+    }
   }
 
   async function signOut() {
-    if (Capacitor.isNativePlatform()) {
-      await FirebaseAuthentication.signOut().catch(() => {});
-    }
     await supabase.auth.signOut();
   }
 
