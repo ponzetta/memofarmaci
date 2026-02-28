@@ -17,6 +17,9 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          rollupOptions: {
+            output: { format: 'es' },
+          },
         },
         manifest: {
           name: 'MemoFarmaci',

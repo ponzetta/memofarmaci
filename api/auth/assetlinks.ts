@@ -1,0 +1,15 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default function handler(_req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Content-Type', 'application/json');
+  res.json([{
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: {
+      namespace: 'android_app',
+      package_name: 'it.memofarmaci.app',
+      sha256_cert_fingerprints: [
+        'F6:A8:19:AC:84:CE:08:7B:EB:21:87:B0:B5:BA:17:88:15:E1:F7:2D:2B:07:58:BA:54:8C:24:84:73:54:BB:E5',
+      ],
+    },
+  }]);
+}
