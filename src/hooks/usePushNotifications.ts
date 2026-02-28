@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 import { supabase } from '../lib/supabase';
 
 function getDeviceId(): string {
@@ -23,14 +25,15 @@ export interface ScheduleItem {
   name: string;
 }
 
-async function doSubscribe(): Promise<void> {
+// ── Web Push (browser) ────────────────────────────────────────────────────────
+
+async function doWebSubscribe(): Promise<void> {
   const keyRes = await fetch('/api/push/vapid-public-key');
   const { publicKey } = await keyRes.json() as { publicKey: string };
   if (!publicKey) return;
 
   const reg = await navigator.serviceWorker.ready;
 
-  // Forza una subscription fresca se la chiave VAPID è cambiata o la sub è scaduta
   let sub = await reg.pushManager.getSubscription();
   if (sub) {
     const existingKey = sub.options?.applicationServerKey;
@@ -62,24 +65,118 @@ async function doSubscribe(): Promise<void> {
   });
 }
 
-export function usePushNotifications(_schedule?: ScheduleItem[]) {
+// ── FCM nativo (Android / iOS via Capacitor) ──────────────────────────────────
+
+async function doNativeSubscribe(fcmToken: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return;
+
+  await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      deviceId: getDeviceId(),
+      fcmToken,
+      platform: Capacitor.getPlatform() as 'android' | 'ios',
+    }),
+  });
+}
+
+// ── Hook principale ───────────────────────────────────────────────────────────
+
+export function usePushNotifications(
+  _schedule?: ScheduleItem[],
+  onAlarm?: (planId: string) => void,
+) {
   const [permStatus, setPermStatus] = useState<NotificationPermission>('default');
   const registeredRef = useRef(false);
+  const isNative = Capacitor.isNativePlatform();
 
+  // ── Setup nativo ────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!isNative) return;
+
+    let mounted = true;
+
+    async function setupNative() {
+      // Android 8+: crea canale con importanza alta per garantire suono e heads-up
+      if (Capacitor.getPlatform() === 'android') {
+        await PushNotifications.createChannel({
+          id: 'memofarmaci-alarms',
+          name: 'Allarmi Farmaci',
+          description: 'Notifiche per la presa dei farmaci',
+          importance: 5,
+          sound: 'default',
+          vibration: true,
+          visibility: 1,
+        });
+      }
+
+      const { receive } = await PushNotifications.requestPermissions();
+      if (!mounted) return;
+
+      if (receive === 'granted') {
+        setPermStatus('granted');
+        await PushNotifications.register();
+      } else {
+        setPermStatus('denied');
+      }
+    }
+
+    setupNative().catch(err => console.warn('Native push setup failed:', err));
+
+    // Token FCM ricevuto → salva su backend
+    const regListener = PushNotifications.addListener('registration', async ({ value: token }) => {
+      if (!registeredRef.current) {
+        registeredRef.current = true;
+        await doNativeSubscribe(token).catch(err => console.warn('FCM subscribe failed:', err));
+      }
+    });
+
+    // Notifica ricevuta in foreground → allarme
+    const receivedListener = PushNotifications.addListener('pushNotificationReceived', notification => {
+      const planId = notification.data?.planId as string | undefined;
+      if (planId && onAlarm) onAlarm(planId);
+    });
+
+    // Tap su notifica → allarme
+    const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
+      const planId = notification.data?.planId as string | undefined;
+      if (planId && onAlarm) onAlarm(planId);
+    });
+
+    return () => {
+      mounted = false;
+      regListener.then(h => h.remove());
+      receivedListener.then(h => h.remove());
+      actionListener.then(h => h.remove());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNative]);
+
+  // ── Setup web (browser) ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isNative) return;
     if (!('Notification' in window)) return;
     setPermStatus(Notification.permission);
-    // Se il permesso è già concesso, ri-registra silenziosamente
     if (Notification.permission === 'granted' && !registeredRef.current) {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
-        doSubscribe()
+        doWebSubscribe()
           .then(() => { registeredRef.current = true; })
           .catch(err => console.warn('Push auto-subscribe failed:', err));
       }
     }
-  }, []);
+  }, [isNative]);
 
+  // ── requestAndSubscribe (solo browser) ─────────────────────────────────────
   const requestAndSubscribe = useCallback(async (): Promise<NotificationPermission> => {
+    if (isNative) {
+      // Su nativo il permesso è già richiesto nell'useEffect sopra
+      return permStatus;
+    }
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       return 'denied';
     }
@@ -87,14 +184,14 @@ export function usePushNotifications(_schedule?: ScheduleItem[]) {
     setPermStatus(permission);
     if (permission === 'granted') {
       try {
-        await doSubscribe();
+        await doWebSubscribe();
         registeredRef.current = true;
       } catch (err) {
         console.warn('Push subscribe failed:', err);
       }
     }
     return permission;
-  }, []);
+  }, [isNative, permStatus]);
 
   return { permStatus, requestAndSubscribe };
 }

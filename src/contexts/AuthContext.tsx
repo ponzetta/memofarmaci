@@ -1,6 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { supabase } from '../lib/supabase';
+
+// App Link HTTPS — Android lo intercetta direttamente senza passare per Chrome
+const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/auth/callback';
 
 interface AuthContextValue {
   user: User | null;
@@ -22,7 +28,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Carica sessione iniziale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -33,7 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Ascolta cambi di stato auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -45,7 +49,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    let appStateListener: { remove: () => void } | null = null;
+    let appUrlListener: { remove: () => void } | null = null;
+
+    if (Capacitor.isNativePlatform()) {
+      // Aggiorna sessione quando l'app torna in foreground
+      CapApp.addListener('appStateChange', async ({ isActive }) => {
+        if (!isActive) return;
+        const { data: { session: refreshed } } = await supabase.auth.getSession();
+        setSession(refreshed);
+        setUser(refreshed?.user ?? null);
+        if (refreshed?.user) {
+          checkProfileCompleted(refreshed.user.id);
+        } else {
+          setProfileCompleted(false);
+          setLoading(false);
+        }
+      }).then(handle => { appStateListener = handle; });
+
+      // Gestisce App Link OAuth: https://memofarmaci-wm25.vercel.app/auth/callback?code=xxx
+      // Android intercetta questo URL HTTPS e lo passa qui senza aprire Chrome
+      CapApp.addListener('appUrlOpen', async ({ url }) => {
+        if (!url.startsWith(OAUTH_REDIRECT_NATIVE)) return;
+        await Browser.close().catch(() => {});
+        const code = new URL(url).searchParams.get('code');
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+            checkProfileCompleted(data.session.user.id);
+          } else {
+            console.error('[MF] exchangeCodeForSession error:', error?.message);
+          }
+        }
+      }).then(handle => { appUrlListener = handle; });
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      appStateListener?.remove();
+      appUrlListener?.remove();
+    };
   }, []);
 
   async function checkProfileCompleted(userId: string) {
@@ -64,17 +109,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+      });
+      if (!error && data?.url) {
+        await Browser.open({ url: data.url });
+      }
+    } else {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });
+    }
   }
 
   async function signInWithFacebook() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo: window.location.origin },
-    });
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+      });
+      if (!error && data?.url) {
+        await Browser.open({ url: data.url });
+      }
+    } else {
+      await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { redirectTo: window.location.origin },
+      });
+    }
   }
 
   async function signOut() {

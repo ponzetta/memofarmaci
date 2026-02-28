@@ -1,4 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { useMedications } from './hooks/useMedications';
 import { useMedicationPlans } from './hooks/useMedicationPlans';
 import { useIntakeLogs } from './hooks/useIntakeLogs';
@@ -64,21 +67,69 @@ export default function App() {
     taken: isTakenToday(plan.id, plan.time, todayStr),
   }));
 
-  usePushNotifications();
+  // Ref per il callback di allarme FCM — aggiornato ad ogni render
+  const onAlarmRef = useRef<((planId: string) => void) | undefined>(undefined);
+  usePushNotifications(undefined, (planId: string) => onAlarmRef.current?.(planId));
 
-  // Blocca tasto ← Android
+  // Status bar trasparente su Android (sovrapposta al contenuto)
   useEffect(() => {
-    history.pushState({ pwa: true }, '');
+    if (!Capacitor.isNativePlatform()) return;
+    StatusBar.setOverlaysWebView({ overlay: true });
+    StatusBar.setStyle({ style: Style.Light });
+    // Diagnostic: verifica safe-area-inset-top
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '0';
+    div.style.paddingTop = 'env(safe-area-inset-top)';
+    document.body.appendChild(div);
+    const insetTop = getComputedStyle(div).paddingTop;
+    const insetBottom = (() => {
+      const d2 = document.createElement('div');
+      d2.style.paddingBottom = 'env(safe-area-inset-bottom)';
+      document.body.appendChild(d2);
+      const v = getComputedStyle(d2).paddingBottom;
+      document.body.removeChild(d2);
+      return v;
+    })();
+    document.body.removeChild(div);
+    console.log('[MF] safe-area-inset-top:', insetTop, 'bottom:', insetBottom, 'innerH:', window.innerHeight, 'screenH:', window.screen.height);
+  }, []);
+
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // Ref sempre aggiornato per evitare closure stale
+  const currentViewRef = useRef<View>('home');
+  useEffect(() => { currentViewRef.current = currentView; }, [currentView]);
+
+  // Tasto ← Android + browser: approccio unificato via popstate.
+  // Su native: pusho una history entry fittizia → Capacitor vede canGoBack()=true →
+  // chiama webView.goBack() (NON lancia backButton event) → popstate si attiva →
+  // gestiamo noi il comportamento. Questo impedisce al WebView di tornare
+  // all'entry iniziale (stato non autenticato = login screen).
+  useEffect(() => {
+    history.pushState({ mf: true }, '');
     const onPopState = () => {
-      if (currentView !== 'home') setCurrentView('home');
-      history.pushState({ pwa: true }, '');
+      const view = currentViewRef.current;
+      if (view !== 'home') {
+        setCurrentView('home');
+      } else if (Capacitor.isNativePlatform()) {
+        setShowExitConfirm(true);
+      }
+      // Ri-pusho per mantenere sempre canGoBack()=true
+      history.pushState({ mf: true }, '');
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [currentView]);
+  }, []);
 
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
+
+  // Aggiorna il callback FCM/nativo con i valori correnti
+  onAlarmRef.current = (planId: string) => {
+    const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
+    if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+  };
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
@@ -90,6 +141,8 @@ export default function App() {
     if (alarmingScheduleId) {
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
+      // Android richiede resume() esplicito prima di usare AudioContext
+      if (ctx.state === 'suspended') ctx.resume();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -173,6 +226,19 @@ export default function App() {
   // alarmingScheduleId escluso intenzionalmente: il check deve avvenire solo al primo load dei dati
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
+
+  // Deep link nativo Capacitor: tap su notifica FCM → apre alarm modal
+  useEffect(() => {
+    const listenerPromise = CapApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const planId = new URL(url).searchParams.get('alarm');
+        if (!planId || !todaysSchedule.length) return;
+        const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
+        if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+      } catch {}
+    });
+    return () => { listenerPromise.then(h => h.remove()); };
+  }, [todaysSchedule, alarmingScheduleId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -284,6 +350,28 @@ export default function App() {
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
       <OfflineBanner />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col gap-4">
+            <h2 className="text-xl font-bold text-slate-800">Sospendi MemoFarmaci?</h2>
+            <p className="text-slate-500">L'app rimarrà attiva in background e continuerà a inviarti i promemoria.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="px-5 py-2 rounded-xl text-slate-600 hover:bg-gray-100 font-medium"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => { setShowExitConfirm(false); CapApp.minimizeApp(); }}
+                className="px-5 py-2 rounded-xl bg-[#5A5A40] text-white font-medium hover:bg-opacity-90"
+              >
+                Sospendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {alarmingSchedule && alarmingMedication && (
         <AlarmModal
           scheduleItem={alarmingSchedule}
@@ -300,7 +388,7 @@ export default function App() {
         />
       )}
 
-      <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg">
+      <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))' }}>
         <h1 className="text-3xl font-serif text-center">MemoFarmaci</h1>
         <p className="text-center text-lg opacity-90">
           {new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -368,7 +456,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl">
+      <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <button onClick={() => setCurrentView('home')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={28} /></button>
         <button onClick={() => setCurrentView('appointments')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={28} /></button>
         <button onClick={() => setCurrentView('history')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={28} /></button>

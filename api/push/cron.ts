@@ -1,6 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import * as admin from 'firebase-admin';
+
+// Inizializza Firebase Admin una sola volta
+if (!admin.apps.length && process.env.FIREBASE_ADMIN_KEY) {
+  admin.initializeApp({
+    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
+  });
+}
 
 function getSupabaseAdmin() {
   return createClient(
@@ -96,32 +104,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Recupera push subscriptions — indipendente da Telegram, non skippa il piano se vuoto
       const { data: subs } = await supabase
         .from('push_subscriptions')
-        .select('endpoint, p256dh, auth_key, device_id')
+        .select('endpoint, p256dh, auth_key, fcm_token, platform, device_id')
         .eq('user_id', plan.user_id);
 
-      for (const sub of (subs ?? []) as Array<{ endpoint: string; p256dh: string; auth_key: string; device_id: string }>) {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
-            JSON.stringify({
-              title: '💊 È ora di prendere la medicina!',
-              body,
-              icon: '/icons/icon-192x192.png',
-              badge: '/icons/icon-192x192.png',
-              tag: `med-${plan.id}-${todayStr}`,
-              renotify: true,
-              planId: plan.id,
-            }),
-          );
-          results.push({ type: 'push', planId: plan.id, device: sub.device_id, ok: true });
-        } catch (err: unknown) {
-          const e = err as { statusCode?: number };
-          results.push({ type: 'push', planId: plan.id, device: sub.device_id, error: e.statusCode });
-          // Rimuovi subscription scaduta
-          if (e.statusCode === 410) {
-            await supabase.from('push_subscriptions')
-              .delete()
-              .eq('endpoint', sub.endpoint);
+      for (const sub of (subs ?? []) as Array<{
+        endpoint: string | null; p256dh: string | null; auth_key: string | null;
+        fcm_token: string | null; platform: string | null; device_id: string;
+      }>) {
+        if (sub.fcm_token) {
+          // ── FCM nativo (Android / iOS) ───────────────────────────────────
+          try {
+            await admin.messaging().send({
+              token: sub.fcm_token,
+              notification: { title: '💊 È ora di prendere la medicina!', body },
+              data: { planId: plan.id },
+              android: {
+                priority: 'high',
+                notification: {
+                  channelId: 'memofarmaci-alarms',
+                  sound: 'default',
+                  defaultSound: true,
+                  defaultVibrateTimings: true,
+                },
+              },
+              apns: {
+                payload: { aps: { sound: 'default', badge: 1 } },
+              },
+            });
+            results.push({ type: 'fcm', planId: plan.id, device: sub.device_id, ok: true });
+          } catch (err: unknown) {
+            const e = err as { errorInfo?: { code?: string } };
+            results.push({ type: 'fcm', planId: plan.id, device: sub.device_id, error: e.errorInfo?.code });
+            // Rimuovi token FCM scaduto o non registrato
+            if (e.errorInfo?.code === 'messaging/registration-token-not-registered') {
+              await supabase.from('push_subscriptions')
+                .delete()
+                .eq('fcm_token', sub.fcm_token);
+            }
+          }
+        } else if (sub.endpoint && sub.p256dh && sub.auth_key) {
+          // ── Web Push (browser) ────────────────────────────────────────────
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
+              JSON.stringify({
+                title: '💊 È ora di prendere la medicina!',
+                body,
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
+                tag: `med-${plan.id}-${todayStr}`,
+                renotify: true,
+                planId: plan.id,
+              }),
+            );
+            results.push({ type: 'push', planId: plan.id, device: sub.device_id, ok: true });
+          } catch (err: unknown) {
+            const e = err as { statusCode?: number };
+            results.push({ type: 'push', planId: plan.id, device: sub.device_id, error: e.statusCode });
+            // Rimuovi subscription scaduta
+            if (e.statusCode === 410) {
+              await supabase.from('push_subscriptions')
+                .delete()
+                .eq('endpoint', sub.endpoint);
+            }
           }
         }
       }
