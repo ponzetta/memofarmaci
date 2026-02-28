@@ -25,6 +25,14 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 </body></html>`);
   }
 
-  // Redirect 302 verso il custom scheme — Android lo intercetta e apre l'app
-  return res.redirect(302, redirectUrl);
+  // Redirect via JavaScript: più affidabile del 302 con Chrome Custom Tab su Android,
+  // che a volte non intercetta i redirect HTTP verso custom schemes.
+  return res.status(200).send(`<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"><title>Accesso in corso...</title>
+<script>window.location.href = ${JSON.stringify(redirectUrl)};</script>
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:2rem">
+  <p>Accesso in corso, attendi...</p>
+  <p style="margin-top:1rem"><a href="${redirectUrl}">Clicca qui se non vieni reindirizzato</a></p>
+</body></html>`);
 }
