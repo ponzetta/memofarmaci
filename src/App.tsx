@@ -75,34 +75,52 @@ export default function App() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     StatusBar.setOverlaysWebView({ overlay: true });
-    StatusBar.setStyle({ style: Style.Dark });
+    StatusBar.setStyle({ style: Style.Light });
+    // Diagnostic: verifica safe-area-inset-top
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '0';
+    div.style.paddingTop = 'env(safe-area-inset-top)';
+    document.body.appendChild(div);
+    const insetTop = getComputedStyle(div).paddingTop;
+    const insetBottom = (() => {
+      const d2 = document.createElement('div');
+      d2.style.paddingBottom = 'env(safe-area-inset-bottom)';
+      document.body.appendChild(d2);
+      const v = getComputedStyle(d2).paddingBottom;
+      document.body.removeChild(d2);
+      return v;
+    })();
+    document.body.removeChild(div);
+    console.log('[MF] safe-area-inset-top:', insetTop, 'bottom:', insetBottom, 'innerH:', window.innerHeight, 'screenH:', window.screen.height);
   }, []);
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // Tasto ← Android: su Capacitor intercetta l'evento nativo
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      // Browser/PWA: gestione via popstate
-      history.pushState({ pwa: true }, '');
-      const onPopState = () => {
-        if (currentView !== 'home') setCurrentView('home');
-        history.pushState({ pwa: true }, '');
-      };
-      window.addEventListener('popstate', onPopState);
-      return () => window.removeEventListener('popstate', onPopState);
-    }
+  // Ref sempre aggiornato per evitare closure stale
+  const currentViewRef = useRef<View>('home');
+  useEffect(() => { currentViewRef.current = currentView; }, [currentView]);
 
-    // App nativa: intercetta backButton di Capacitor
-    const listenerPromise = CapApp.addListener('backButton', () => {
-      if (currentView !== 'home') {
+  // Tasto ← Android + browser: approccio unificato via popstate.
+  // Su native: pusho una history entry fittizia → Capacitor vede canGoBack()=true →
+  // chiama webView.goBack() (NON lancia backButton event) → popstate si attiva →
+  // gestiamo noi il comportamento. Questo impedisce al WebView di tornare
+  // all'entry iniziale (stato non autenticato = login screen).
+  useEffect(() => {
+    history.pushState({ mf: true }, '');
+    const onPopState = () => {
+      const view = currentViewRef.current;
+      if (view !== 'home') {
         setCurrentView('home');
-      } else {
+      } else if (Capacitor.isNativePlatform()) {
         setShowExitConfirm(true);
       }
-    });
-    return () => { listenerPromise.then(h => h.remove()); };
-  }, [currentView]);
+      // Ri-pusho per mantenere sempre canGoBack()=true
+      history.pushState({ mf: true }, '');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
