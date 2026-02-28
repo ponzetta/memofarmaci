@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { GoogleAuth } from '@southdevs/capacitor-google-auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextValue {
@@ -86,17 +86,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signInWithGoogle() {
     if (Capacitor.isNativePlatform()) {
-      // Login nativo Google — nessun browser aperto, nessun redirect
-      const googleUser = await GoogleAuth.signIn();
-      const idToken = googleUser.authentication.idToken;
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
-      if (!error && data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        checkProfileCompleted(data.session.user.id);
+      try {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+        if (!idToken) { console.error('[MF] idToken Firebase mancante'); return; }
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+        if (error) { console.error('[MF] Supabase signInWithIdToken error:', error.message); return; }
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          checkProfileCompleted(data.session.user.id);
+        }
+      } catch (e) {
+        console.error('[MF] Errore signInWithGoogle:', e);
       }
     } else {
       await supabase.auth.signInWithOAuth({
@@ -107,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithFacebook() {
-    // Facebook resta OAuth web su tutte le piattaforme
     await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: { redirectTo: window.location.origin },
@@ -116,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     if (Capacitor.isNativePlatform()) {
-      await GoogleAuth.signOut().catch(() => {});
+      await FirebaseAuthentication.signOut().catch(() => {});
     }
     await supabase.auth.signOut();
   }
