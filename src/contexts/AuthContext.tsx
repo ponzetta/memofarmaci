@@ -2,14 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
+import { GoogleAuth } from '@southdevs/capacitor-google-auth';
 import { supabase } from '../lib/supabase';
-
-// URL ponte su Vercel che riceve il code da Supabase e redirige al custom scheme.
-// Vercel lo accetta perché è sotto il Site URL già autorizzato in Supabase.
-const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/api/auth/callback';
-// Custom scheme intercettato da Android dopo il redirect del ponte Vercel.
-const OAUTH_DEEP_LINK_PREFIX = 'it.memofarmaci.app://login';
 
 interface AuthContextValue {
   user: User | null;
@@ -31,7 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Carica sessione iniziale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -42,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Ascolta cambi di stato auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -54,57 +46,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Diagnostic: verifica che AuthContext sia montato e Capacitor sia nativo
-    console.log('[MF] AuthContext montato, isNative:', Capacitor.isNativePlatform(), 'platform:', Capacitor.getPlatform());
-
-    // Su Android/iOS: quando l'app torna in foreground dopo OAuth o refresh, ricarica la sessione
+    // Su Android: aggiorna la sessione quando l'app torna in foreground
     let appStateListener: { remove: () => void } | null = null;
-    let appUrlListener: { remove: () => void } | null = null;
     if (Capacitor.isNativePlatform()) {
       CapApp.addListener('appStateChange', async ({ isActive }) => {
         if (!isActive) return;
-        const { data: { session: refreshedSession } } = await supabase.auth.getSession();
-        setSession(refreshedSession);
-        setUser(refreshedSession?.user ?? null);
-        if (refreshedSession?.user) {
-          checkProfileCompleted(refreshedSession.user.id);
+        const { data: { session: refreshed } } = await supabase.auth.getSession();
+        setSession(refreshed);
+        setUser(refreshed?.user ?? null);
+        if (refreshed?.user) {
+          checkProfileCompleted(refreshed.user.id);
         } else {
           setProfileCompleted(false);
           setLoading(false);
         }
       }).then(handle => { appStateListener = handle; });
-
-      // Gestisce il deep link OAuth: it.memofarmaci.app://login?code=xxx
-      CapApp.addListener('appUrlOpen', async ({ url }) => {
-        if (!url.startsWith(OAUTH_DEEP_LINK_PREFIX)) return;
-        // Chiude il browser in-app se aperto
-        await Browser.close().catch(() => {});
-        // Estrae il code e lo scambia con la sessione
-        const urlObj = new URL(url);
-        const code = urlObj.searchParams.get('code');
-        if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (!error && data.session) {
-            setSession(data.session);
-            setUser(data.session.user);
-            checkProfileCompleted(data.session.user.id);
-          }
-        } else {
-          // Prova a caricare la sessione direttamente (flusso implicito)
-          const { data: { session: s } } = await supabase.auth.getSession();
-          if (s) {
-            setSession(s);
-            setUser(s.user);
-            checkProfileCompleted(s.user.id);
-          }
-        }
-      }).then(handle => { appUrlListener = handle; });
     }
 
     return () => {
       subscription.unsubscribe();
       appStateListener?.remove();
-      appUrlListener?.remove();
     };
   }, []);
 
@@ -125,13 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signInWithGoogle() {
     if (Capacitor.isNativePlatform()) {
-      // Su Android/iOS: apre il browser in-app e usa il custom URL scheme per il redirect
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Login nativo Google — nessun browser aperto, nessun redirect
+      const googleUser = await GoogleAuth.signIn();
+      const idToken = googleUser.authentication.idToken;
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
-        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+        token: idToken,
       });
-      if (!error && data?.url) {
-        await Browser.open({ url: data.url });
+      if (!error && data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        checkProfileCompleted(data.session.user.id);
       }
     } else {
       await supabase.auth.signInWithOAuth({
@@ -142,23 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithFacebook() {
-    if (Capacitor.isNativePlatform()) {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
-      });
-      if (!error && data?.url) {
-        await Browser.open({ url: data.url });
-      }
-    } else {
-      await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: window.location.origin },
-      });
-    }
+    // Facebook resta OAuth web su tutte le piattaforme
+    await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: window.location.origin },
+    });
   }
 
   async function signOut() {
+    if (Capacitor.isNativePlatform()) {
+      await GoogleAuth.signOut().catch(() => {});
+    }
     await supabase.auth.signOut();
   }
 
