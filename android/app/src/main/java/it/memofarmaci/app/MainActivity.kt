@@ -1,13 +1,18 @@
 package it.memofarmaci.app
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.credentials.CredentialManager
@@ -23,6 +28,10 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+
+    // Launcher per richiedere POST_NOTIFICATIONS (Android 13+)
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* noop */ }
 
     companion object {
         // Web Client ID del progetto Supabase (815488260722), NON del progetto Firebase
@@ -76,6 +85,19 @@ class MainActivity : AppCompatActivity() {
 
         // Carica l'app React da Vercel
         webView.loadUrl("https://memofarmaci-wm25.vercel.app")
+
+        // Android 13+: richiedi permesso notifiche push
+        requestNotificationPermission()
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     /**
