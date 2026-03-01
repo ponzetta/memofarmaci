@@ -4,9 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { supabase } from '../lib/supabase';
 
-// Supabase redirige qui dopo OAuth; api/auth/callback.ts fa poi redirect al custom scheme.
-// Usiamo /api/auth/callback direttamente per evitare il routing SPA di Vercel.
-const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/api/auth/callback';
+// Supabase redirige qui dopo OAuth; main.tsx rileva il ?code= e fa il redirect all'app
+const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/auth/callback';
 // Custom scheme ricevuto da appUrlOpen dopo che Chrome ha aperto l'intent URL
 const APP_SCHEME_CALLBACK = 'it.memofarmaci.app://login';
 
