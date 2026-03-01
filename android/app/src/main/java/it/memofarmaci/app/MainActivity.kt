@@ -2,6 +2,8 @@ package it.memofarmaci.app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -89,6 +91,26 @@ class MainActivity : AppCompatActivity() {
 
         // Android 13+: richiedi permesso notifiche push
         requestNotificationPermission()
+
+        // Crea il canale notifiche usato sia dall'app sia dal cron FCM
+        createNotificationChannel()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            // ID deve corrispondere al channelId nel payload FCM del cron (api/push/cron.ts)
+            val channel = NotificationChannel(
+                "memofarmaci-alarms",
+                "Promemoria farmaci",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifiche per la presa dei farmaci"
+                enableVibration(true)
+                enableLights(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
     }
 
     private fun requestNotificationPermission() {

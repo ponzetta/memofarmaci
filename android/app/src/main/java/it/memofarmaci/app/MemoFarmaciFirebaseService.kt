@@ -31,16 +31,22 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
     }
 
     private fun showNotification(title: String, body: String) {
-        val channelId = "memofarmaci_reminders"
+        // ID deve corrispondere al channelId nel payload FCM del cron (api/push/cron.ts)
+        val channelId = "memofarmaci-alarms"
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Il canale viene creato in MainActivity.onCreate, ma lo riaggiungiamo
+            // qui per sicurezza nel caso il servizio venga avviato prima dell'Activity
             val channel = NotificationChannel(
                 channelId,
                 "Promemoria farmaci",
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                enableVibration(true)
+                enableLights(true)
+            }
             notificationManager.createNotificationChannel(channel)
         }
 
