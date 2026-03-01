@@ -13,9 +13,11 @@ const config: CapacitorConfig = {
       style: 'LIGHT',
       backgroundColor: '#00000000',
     },
-    FirebaseAuthentication: {
-      skipNativeAuth: false,
-      providers: ['google.com'],
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      // Web client ID del progetto Supabase (815488260722) — NON quello Firebase
+      serverClientId: '815488260722-nu7nsn9m8tlrpk9pqb97j3ra7cslkhsv.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
     },
   },
 };

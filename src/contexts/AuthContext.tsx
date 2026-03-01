@@ -4,8 +4,10 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { supabase } from '../lib/supabase';
 
-// App Link HTTPS — Android lo intercetta direttamente senza passare per Chrome
+// Supabase redirige qui dopo OAuth; api/auth/callback.ts fa poi redirect al custom scheme
 const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/auth/callback';
+// Custom scheme ricevuto da appUrlOpen dopo che Chrome ha aperto l'intent URL
+const APP_SCHEME_CALLBACK = 'it.memofarmaci.app://login';
 
 interface AuthContextValue {
   user: User | null;
@@ -66,11 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }).then(handle => { appStateListener = handle; });
 
-      // Gestisce App Link OAuth: https://memofarmaci-wm25.vercel.app/auth/callback?code=xxx
-      // Android intercetta questo URL HTTPS e lo passa qui senza aprire Chrome
+      // Gestisce il custom scheme it.memofarmaci.app://login?code=xxx
+      // Arriva dopo che Chrome ha processato l'intent URL da api/auth/callback.ts
       CapApp.addListener('appUrlOpen', async ({ url }) => {
-        if (!url.startsWith(OAUTH_REDIRECT_NATIVE)) return;
-        const code = new URL(url).searchParams.get('code');
+        if (!url.startsWith(APP_SCHEME_CALLBACK)) return;
+        const searchString = url.split('?')[1] ?? '';
+        const code = new URLSearchParams(searchString).get('code');
         if (code) {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (!error && data.session) {

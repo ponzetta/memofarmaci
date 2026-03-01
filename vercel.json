@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/.well-known/assetlinks.json", "destination": "/api/auth/assetlinks" },
+    { "source": "/auth/callback", "destination": "/api/auth/callback" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

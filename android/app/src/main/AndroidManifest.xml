@@ -19,15 +19,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- App Link HTTPS per OAuth callback — Android intercetta automaticamente
-                 senza passare per Chrome, a differenza dei custom schemes -->
-            <intent-filter android:autoVerify="true">
+            <!-- Custom scheme per OAuth callback: Chrome intercetta it.memofarmaci.app://
+                 tramite Intent URL e riapreil app senza bisogno di App Links verificati -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https"
-                      android:host="memofarmaci-wm25.vercel.app"
-                      android:pathPrefix="/auth/callback" />
+                <data android:scheme="it.memofarmaci.app" android:host="login" />
             </intent-filter>
         </activity>
 
