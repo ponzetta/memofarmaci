@@ -247,17 +247,19 @@ export default function App() {
       const dueMed = todaysSchedule.find(item => item.time === currentTime && !item.taken && !alarmingScheduleId);
       if (dueMed) {
         const medication = medications.find(m => m.id === dueMed.medicationId);
-        // Notification API non è disponibile in Android WebView: guard esplicito
-        if (typeof Notification !== 'undefined') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              new Notification('È ora di prendere la medicina!', {
-                body: `Ricordati di prendere ${medication?.name || 'il farmaco'}`,
-                icon: medication?.pillPhoto || '/vite.svg',
-              });
-            }
-          });
-        }
+        // Notification API può mancare o lanciare in Android WebView
+        try {
+          if (typeof Notification !== 'undefined') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                new Notification('È ora di prendere la medicina!', {
+                  body: `Ricordati di prendere ${medication?.name || 'il farmaco'}`,
+                  icon: medication?.pillPhoto || '/vite.svg',
+                });
+              }
+            }).catch(() => {});
+          }
+        } catch {}
         setAlarmingScheduleId(dueMed.id);
       }
     }, 10000);
@@ -395,6 +397,10 @@ export default function App() {
         <h1 className="text-3xl font-serif text-center">MemoFarmaci</h1>
         <p className="text-center text-lg opacity-90">
           {new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
+        {/* DEBUG: rimuovere dopo il test */}
+        <p className="text-center text-xs opacity-70 mt-1">
+          Farmaci oggi: {todaysSchedule.length} | Non presi: {todaysSchedule.filter(i => !i.taken).length}
         </p>
       </header>
 
