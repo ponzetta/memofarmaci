@@ -247,14 +247,17 @@ export default function App() {
       const dueMed = todaysSchedule.find(item => item.time === currentTime && !item.taken && !alarmingScheduleId);
       if (dueMed) {
         const medication = medications.find(m => m.id === dueMed.medicationId);
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            new Notification('È ora di prendere la medicina!', {
-              body: `Ricordati di prendere ${medication?.name || 'il farmaco'}`,
-              icon: medication?.pillPhoto || '/vite.svg',
-            });
-          }
-        });
+        // Notification API non è disponibile in Android WebView: guard esplicito
+        if (typeof Notification !== 'undefined') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification('È ora di prendere la medicina!', {
+                body: `Ricordati di prendere ${medication?.name || 'il farmaco'}`,
+                icon: medication?.pillPhoto || '/vite.svg',
+              });
+            }
+          });
+        }
         setAlarmingScheduleId(dueMed.id);
       }
     }, 10000);

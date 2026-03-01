@@ -64,15 +64,18 @@ class MainActivity : AppCompatActivity() {
                 // Tutto il traffico resta nella WebView
                 return false
             }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                // Passa il token FCM alla WebView dopo il caricamento completo della pagina,
+                // così window.onFcmToken è già registrato dal codice React
+                registerFcmToken()
+            }
         }
 
         webView.webChromeClient = WebChromeClient()
 
         // Carica l'app React da Vercel
         webView.loadUrl("https://memofarmaci-wm25.vercel.app")
-
-        // Recupera e passa il token FCM alla WebView non appena disponibile
-        registerFcmToken()
     }
 
     /**

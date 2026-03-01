@@ -3,6 +3,11 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { supabase } from '../lib/supabase';
 
+// True quando giriamo dentro la WebView nativa Android (non Capacitor)
+function isAndroidWebView(): boolean {
+  return !Capacitor.isNativePlatform() && !!(window as unknown as { AndroidBridge?: unknown }).AndroidBridge;
+}
+
 function getDeviceId(): string {
   let id = localStorage.getItem('deviceId');
   if (!id) {
@@ -65,9 +70,9 @@ async function doWebSubscribe(): Promise<void> {
   });
 }
 
-// ── FCM nativo (Android / iOS via Capacitor) ──────────────────────────────────
+// ── FCM nativo (Android / iOS) ────────────────────────────────────────────────
 
-async function doNativeSubscribe(fcmToken: string): Promise<void> {
+async function doNativeSubscribe(fcmToken: string, platform: 'android' | 'ios'): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) return;
 
@@ -80,7 +85,7 @@ async function doNativeSubscribe(fcmToken: string): Promise<void> {
     body: JSON.stringify({
       deviceId: getDeviceId(),
       fcmToken,
-      platform: Capacitor.getPlatform() as 'android' | 'ios',
+      platform,
     }),
   });
 }
@@ -94,8 +99,28 @@ export function usePushNotifications(
   const [permStatus, setPermStatus] = useState<NotificationPermission>('default');
   const registeredRef = useRef(false);
   const isNative = Capacitor.isNativePlatform();
+  const androidWebView = isAndroidWebView();
 
-  // ── Setup nativo ────────────────────────────────────────────────────────────
+  // ── Setup Android WebView nativo: riceve token FCM da MainActivity.kt ───────
+  useEffect(() => {
+    if (!androidWebView) return;
+
+    (window as unknown as { onFcmToken?: (token: string) => void }).onFcmToken =
+      async (token: string) => {
+        if (registeredRef.current) return;
+        registeredRef.current = true;
+        await doNativeSubscribe(token, 'android').catch(err =>
+          console.warn('[MF] FCM subscribe failed:', err)
+        );
+      };
+
+    return () => {
+      (window as unknown as { onFcmToken?: unknown }).onFcmToken = undefined;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [androidWebView]);
+
+  // ── Setup nativo Capacitor (iOS) ─────────────────────────────────────────────
   useEffect(() => {
     if (!isNative) return;
 
@@ -132,7 +157,8 @@ export function usePushNotifications(
     const regListener = PushNotifications.addListener('registration', async ({ value: token }) => {
       if (!registeredRef.current) {
         registeredRef.current = true;
-        await doNativeSubscribe(token).catch(err => console.warn('FCM subscribe failed:', err));
+        const platform = Capacitor.getPlatform() as 'android' | 'ios';
+        await doNativeSubscribe(token, platform).catch(err => console.warn('FCM subscribe failed:', err));
       }
     });
 
@@ -157,9 +183,9 @@ export function usePushNotifications(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNative]);
 
-  // ── Setup web (browser) ─────────────────────────────────────────────────────
+  // ── Setup web (browser) — saltato se siamo nel WebView Android nativo ────────
   useEffect(() => {
-    if (isNative) return;
+    if (isNative || androidWebView) return;
     if (!('Notification' in window)) return;
     setPermStatus(Notification.permission);
     if (Notification.permission === 'granted' && !registeredRef.current) {
@@ -173,7 +199,7 @@ export function usePushNotifications(
 
   // ── requestAndSubscribe (solo browser) ─────────────────────────────────────
   const requestAndSubscribe = useCallback(async (): Promise<NotificationPermission> => {
-    if (isNative) {
+    if (isNative || androidWebView) {
       // Su nativo il permesso è già richiesto nell'useEffect sopra
       return permStatus;
     }
