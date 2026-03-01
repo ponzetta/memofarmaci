@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private var currentFcmToken: String? = null
 
     // Launcher per richiedere POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher =
@@ -143,13 +144,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Token FCM corrente, leggibile da React via AndroidBridge.getFcmToken() */
+    fun getCurrentFcmToken(): String = currentFcmToken ?: ""
+
     private fun registerFcmToken() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val token = task.result
+                currentFcmToken = task.result
+                val escaped = currentFcmToken!!.replace("'", "\\'")
                 webView.post {
+                    // Callback push (se React è già pronto); altrimenti React userà getFcmToken()
                     webView.evaluateJavascript(
-                        "window.onFcmToken && window.onFcmToken('${token.replace("'", "\\'")}')",
+                        "window.onFcmToken && window.onFcmToken('$escaped')",
                         null
                     )
                 }

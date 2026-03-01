@@ -105,14 +105,24 @@ export function usePushNotifications(
   useEffect(() => {
     if (!androidWebView) return;
 
-    (window as unknown as { onFcmToken?: (token: string) => void }).onFcmToken =
-      async (token: string) => {
-        if (registeredRef.current) return;
-        registeredRef.current = true;
-        await doNativeSubscribe(token, 'android').catch(err =>
-          console.warn('[MF] FCM subscribe failed:', err)
-        );
-      };
+    const bridge = (window as unknown as {
+      AndroidBridge?: { getFcmToken?: () => string };
+    }).AndroidBridge;
+
+    const trySubscribe = async (token: string) => {
+      if (!token || registeredRef.current) return;
+      registeredRef.current = true;
+      await doNativeSubscribe(token, 'android').catch(err =>
+        console.warn('[MF] FCM subscribe failed:', err)
+      );
+    };
+
+    // 1) Callback push: per quando il token arriva dopo che React è pronto
+    (window as unknown as { onFcmToken?: (token: string) => void }).onFcmToken = trySubscribe;
+
+    // 2) Pull: controlla se il token è già disponibile nel bridge (race condition fix)
+    const existing = bridge?.getFcmToken?.();
+    if (existing) trySubscribe(existing);
 
     return () => {
       (window as unknown as { onFcmToken?: unknown }).onFcmToken = undefined;

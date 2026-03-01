@@ -14,4 +14,8 @@ class WebAppInterface(private val activity: MainActivity) {
             activity.startGoogleSignIn()
         }
     }
+
+    /** React chiama questo quando è pronto per ricevere il token FCM */
+    @JavascriptInterface
+    fun getFcmToken(): String = activity.getCurrentFcmToken()
 }
