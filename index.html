@@ -15,6 +15,9 @@
       (function() {
         var code = new URLSearchParams(location.search).get('code');
         if (location.pathname === '/auth/callback' && code) {
+          // Rimuove subito il code dall'URL: se Chrome resta sulla pagina dopo
+          // aver processato l'intent, la SPA non trovera' il code e non lo consumera'.
+          history.replaceState(null, '', '/auth/callback');
           location.replace(
             'intent://login?code=' + encodeURIComponent(code) +
             '#Intent;scheme=it.memofarmaci.app;package=it.memofarmaci.app;end'
