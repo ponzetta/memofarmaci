@@ -1,13 +1,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { Capacitor } from '@capacitor/core';
-import { App as CapApp } from '@capacitor/app';
 import { supabase } from '../lib/supabase';
 
-// Supabase redirige qui dopo OAuth; main.tsx rileva il ?code= e fa il redirect all'app
-const OAUTH_REDIRECT_NATIVE = 'https://memofarmaci-wm25.vercel.app/auth/callback';
-// Custom scheme ricevuto da appUrlOpen dopo che Chrome ha aperto l'intent URL
-const APP_SCHEME_CALLBACK = 'it.memofarmaci.app://login';
+// Tipi del bridge JavaScript → Kotlin iniettato dalla WebView Android nativa
+declare global {
+  interface Window {
+    AndroidBridge?: { signInWithGoogle: () => void };
+    onGoogleSignInResult?: (idToken: string) => void;
+    onGoogleSignInError?: (error: string) => void;
+    onFcmToken?: (token: string) => void;
+  }
+}
 
 interface AuthContextValue {
   user: User | null;
@@ -50,47 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    let appStateListener: { remove: () => void } | null = null;
-    let appUrlListener: { remove: () => void } | null = null;
-
-    if (Capacitor.isNativePlatform()) {
-      // Aggiorna sessione quando l'app torna in foreground
-      CapApp.addListener('appStateChange', async ({ isActive }) => {
-        if (!isActive) return;
-        const { data: { session: refreshed } } = await supabase.auth.getSession();
-        setSession(refreshed);
-        setUser(refreshed?.user ?? null);
-        if (refreshed?.user) {
-          checkProfileCompleted(refreshed.user.id);
-        } else {
-          setProfileCompleted(false);
-          setLoading(false);
-        }
-      }).then(handle => { appStateListener = handle; });
-
-      // Gestisce il custom scheme it.memofarmaci.app://login?code=xxx
-      // Arriva dopo che Chrome ha processato l'intent URL da api/auth/callback.ts
-      CapApp.addListener('appUrlOpen', async ({ url }) => {
-        if (!url.startsWith(APP_SCHEME_CALLBACK)) return;
-        const searchString = url.split('?')[1] ?? '';
-        const code = new URLSearchParams(searchString).get('code');
-        if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (!error && data.session) {
-            setSession(data.session);
-            setUser(data.session.user);
-            checkProfileCompleted(data.session.user.id);
-          } else {
-            console.error('[MF] exchangeCodeForSession error:', error?.message);
-          }
-        }
-      }).then(handle => { appUrlListener = handle; });
-    }
-
     return () => {
       subscription.unsubscribe();
-      appStateListener?.remove();
-      appUrlListener?.remove();
     };
   }, []);
 
@@ -110,15 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithGoogle() {
-    if (Capacitor.isNativePlatform()) {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
+    if (window.AndroidBridge) {
+      // App Android nativa: usa Credential Manager via bridge Kotlin
+      return new Promise<void>((resolve, reject) => {
+        window.onGoogleSignInResult = async (idToken: string) => {
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: idToken,
+          });
+          if (error) reject(error);
+          else resolve();
+        };
+        window.onGoogleSignInError = (errMsg: string) => {
+          console.error('[MF] Google Sign-In error:', errMsg);
+          reject(new Error(errMsg));
+        };
+        window.AndroidBridge!.signInWithGoogle();
       });
-      if (!error && data?.url) {
-        window.open(data.url, '_system');
-      }
     } else {
+      // Web browser
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin },
@@ -127,20 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithFacebook() {
-    if (Capacitor.isNativePlatform()) {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: OAUTH_REDIRECT_NATIVE, skipBrowserRedirect: true },
-      });
-      if (!error && data?.url) {
-        window.open(data.url, '_system');
-      }
-    } else {
-      await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: window.location.origin },
-      });
-    }
+    // OAuth web: funziona sia nel browser sia nella WebView Android
+    await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: window.location.origin },
+    });
   }
 
   async function signOut() {
