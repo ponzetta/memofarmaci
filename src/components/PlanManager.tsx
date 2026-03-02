@@ -16,42 +16,41 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
   }
 
   return (
-    <div className="w-full h-full bg-white p-6 flex flex-col">
-      <header className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-serif text-slate-800">Gestione Piani</h2>
-        <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
+    <div className="w-full h-full bg-white flex flex-col">
+      <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+        <h1 className="text-xl font-bold">Gestione Piani</h1>
       </header>
 
-      <div className="mb-4 flex gap-4">
-        <button onClick={onAddNew} className="w-full bg-[#0D9488] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 flex items-center justify-center gap-2">
-          <Plus size={22} />
+      <div className="px-6 pt-3 pb-3 flex gap-3">
+        <button onClick={onAddNew} className="flex-1 bg-[#0D9488] text-white text-sm font-semibold py-2.5 rounded-xl shadow-lg hover:bg-opacity-90 flex items-center justify-center gap-2">
+          <Plus size={18} />
           Aggiungi
         </button>
-        <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all">
+        <button onClick={onClose} className="flex-1 bg-gray-100 text-gray-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-200 transition-all">
           Chiudi
         </button>
       </div>
 
-      <main className="flex-grow overflow-y-auto">
+      <main className="flex-grow overflow-y-auto px-4 pb-4">
         {plans.length === 0 ? (
           <div className="text-center py-10">
-            <p className="text-slate-500">Nessun piano terapeutico trovato.</p>
+            <p className="text-slate-500 text-sm">Nessun piano terapeutico trovato.</p>
           </div>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-2">
             {plans.map(plan => (
-              <li key={plan.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+              <li key={plan.id} className="bg-gray-50 px-4 py-3 rounded-xl flex justify-between items-center">
                 <div>
-                  <p className="font-bold text-lg text-slate-800">{getMedicationName(plan.medicationId)}</p>
-                  <p className="text-slate-600">{plan.dosage} alle {plan.time}</p>
-                  <p className="text-sm text-slate-500">Dal {plan.startDate}{plan.endDate === '2099-12-31' ? ' · Nessuna scadenza' : ` al ${plan.endDate}`}</p>
+                  <p className="font-semibold text-sm text-slate-800">{getMedicationName(plan.medicationId)}</p>
+                  <p className="text-sm text-slate-600">{plan.dosage} alle {plan.time}</p>
+                  <p className="text-xs text-slate-500">Dal {plan.startDate}{plan.endDate === '2099-12-31' ? ' · Nessuna scadenza' : ` al ${plan.endDate}`}</p>
                 </div>
                 <div className="flex items-center">
-                  <button onClick={() => onEdit(plan)} className="text-blue-500 hover:text-blue-700 p-2">
-                    <Pencil size={24} />
+                  <button onClick={() => onEdit(plan)} className="text-blue-500 hover:text-blue-700 p-1.5">
+                    <Pencil size={18} />
                   </button>
-                  <button onClick={() => onDelete(plan.id)} className="text-red-500 hover:text-red-700 p-2">
-                    <Trash2 size={24} />
+                  <button onClick={() => onDelete(plan.id)} className="text-red-500 hover:text-red-700 p-1.5">
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </li>

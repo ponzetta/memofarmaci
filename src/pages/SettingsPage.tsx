@@ -52,7 +52,7 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
       <header className="bg-[#0D9488] text-white p-6 rounded-b-3xl shadow-lg flex items-center gap-4">
         <button onClick={onClose} className="text-white text-2xl leading-none">&larr;</button>
-        <h1 className="text-3xl font-serif">Impostazioni</h1>
+        <h1 className="text-xl font-bold">Impostazioni</h1>
       </header>
 
       <form onSubmit={handleSave} className="flex-grow p-6 space-y-6 overflow-y-auto">

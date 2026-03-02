@@ -399,18 +399,14 @@ export default function App() {
       )}
 
       {currentView === 'home' && (
-        <header className="bg-[#0D9488] text-white px-6 pt-5 pb-6 rounded-b-3xl shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">MemoFarmaci</h1>
-              <p className="text-sm opacity-80 mt-0.5 capitalize">
-                {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-            </div>
-            <div className="bg-white/20 rounded-2xl px-4 py-2 text-center min-w-[60px]">
-              <p className="text-2xl font-bold leading-none">{todaysSchedule.filter(i => !i.taken).length}</p>
-              <p className="text-xs opacity-90 mt-0.5">da prendere</p>
-            </div>
+        <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+          <h1 className="text-xl font-bold">MemoFarmaci</h1>
+          <p className="text-sm opacity-80 mt-0.5 capitalize">
+            {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 rounded-xl px-3 py-1">
+            <span className="text-base font-bold">{todaysSchedule.filter(i => !i.taken).length}</span>
+            <span className="text-xs opacity-90">da prendere</span>
           </div>
         </header>
       )}
@@ -419,7 +415,7 @@ export default function App() {
         {currentView === 'home' && (
           <button
             onClick={() => setCurrentView('planManager')}
-            className="w-full flex items-center justify-center gap-2 bg-[#0D9488] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4"
+            className="w-full flex items-center justify-center gap-2 bg-[#0D9488] text-white text-base font-bold py-3 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4"
           >
             <Bell size={28} />
             Gestione Piani
@@ -435,7 +431,7 @@ export default function App() {
               const isPastDue = now >= itemDate;
               const isLate = isPastDue && timeDiffMs > 30 * 60 * 1000;
 
-              let btnClass = 'px-6 py-4 rounded-full text-white text-lg font-bold shadow-lg transition-transform transform active:scale-95';
+              let btnClass = 'px-5 py-3 rounded-full text-white text-base font-bold shadow-lg transition-transform transform active:scale-95';
               let disabled = false;
               if (isLate) { btnClass += ' bg-red-600 hover:bg-red-700 animate-pulse'; }
               else if (isPastDue) { btnClass += ' bg-green-600 hover:bg-green-700'; }
@@ -447,9 +443,9 @@ export default function App() {
                   <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
                     {boxPhoto && <img src={boxPhoto} alt="Scatola" className="w-16 h-16 object-cover rounded-lg shadow-sm" />}
                     <div>
-                      <p className="text-2xl font-bold text-slate-800">{item.time}</p>
-                      <p className="text-xl text-slate-700">{getMedicationName(item.medicationId)}</p>
-                      <p className="text-lg text-slate-500">{item.dosage}</p>
+                      <p className="text-lg font-bold text-slate-800">{item.time}</p>
+                      <p className="text-base text-slate-700">{getMedicationName(item.medicationId)}</p>
+                      <p className="text-sm text-slate-500">{item.dosage}</p>
                     </div>
                   </div>
                   <div className="flex justify-center">
@@ -464,9 +460,9 @@ export default function App() {
                 <div key={item.id} className="p-6 rounded-2xl shadow-md flex items-center gap-4 bg-blue-50">
                   <CalendarClock size={40} className="text-blue-600 flex-shrink-0" />
                   <div>
-                    <p className="text-2xl font-bold text-slate-800">{item.time}</p>
-                    <p className="text-xl text-slate-700">Appuntamento: Dr. {item.doctor}</p>
-                    <p className="text-lg text-slate-500">{item.location}</p>
+                    <p className="text-lg font-bold text-slate-800">{item.time}</p>
+                    <p className="text-base text-slate-700">Appuntamento: Dr. {item.doctor}</p>
+                    <p className="text-sm text-slate-500">{item.location}</p>
                   </div>
                 </div>
               );

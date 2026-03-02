@@ -26,39 +26,40 @@ export default function Appointments({ appointments, onAddAppointment, onClose }
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleString('it-IT', { dateStyle: 'full', timeStyle: 'short' });
-  }
+  };
 
   return (
-    <div className="w-full h-full bg-white p-6 flex flex-col">
-      <header className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif text-slate-800">Appuntamenti Medici</h2>
-        <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
+    <div className="w-full h-full bg-white flex flex-col">
+      <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+        <h1 className="text-xl font-bold">Appuntamenti Medici</h1>
       </header>
 
-      <section className="mb-8 p-4 border rounded-lg">
-        <h3 class="text-xl font-serif mb-4">Nuovo Appuntamento</h3>
-        <div className="space-y-4">
-          <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} placeholder="Nome del Medico" className="w-full p-3 border-2 rounded-lg" />
-          <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Luogo" className="w-full p-3 border-2 rounded-lg" />
-          <input type="datetime-local" value={dateTime} onChange={e => setDateTime(e.target.value)} className="w-full p-3 border-2 rounded-lg" />
-          <div className="flex gap-4">
-            <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg text-lg font-bold">Annulla</button>
-            <button onClick={handleSubmit} className="w-full bg-[#0D9488] text-white py-3 rounded-lg text-lg font-bold">Salva Appuntamento</button>
-          </div>
-        </div>
-      </section>
+      <div className="px-6 pt-3 pb-1 flex justify-end">
+        <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-800 font-medium">&times; Chiudi</button>
+      </div>
 
-      <main className="flex-grow overflow-y-auto">
-        <h3 class="text-xl font-serif mb-4">Appuntamenti Futuri</h3>
+      <div className="px-6 pb-4 space-y-3">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nuovo Appuntamento</p>
+        <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} placeholder="Nome del Medico" className="w-full p-2.5 border-2 rounded-lg text-sm" />
+        <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Luogo" className="w-full p-2.5 border-2 rounded-lg text-sm" />
+        <input type="datetime-local" value={dateTime} onChange={e => setDateTime(e.target.value)} className="w-full p-2.5 border-2 rounded-lg text-sm" />
+        <div className="flex gap-3">
+          <button onClick={handleSubmit} className="flex-1 bg-[#0D9488] text-white py-2.5 rounded-xl text-sm font-semibold">Salva</button>
+          <button onClick={onClose} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-semibold">Annulla</button>
+        </div>
+      </div>
+
+      <main className="flex-grow overflow-y-auto px-6">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Appuntamenti Futuri</p>
         {appointments.length === 0 ? (
-          <p className="text-center text-slate-500">Nessun appuntamento in programma.</p>
+          <p className="text-center text-slate-500 text-sm">Nessun appuntamento in programma.</p>
         ) : (
-          <ul className="space-y-3">
-            {appointments.slice().sort((a,b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()).map(app => (
-              <li key={app.id} className="bg-blue-50 p-4 rounded-lg">
-                <p className="font-bold text-blue-800">Dr. {app.doctor}</p>
-                <p className="text-slate-700">{app.location}</p>
-                <p className="text-slate-600 font-medium mt-1">{formatDateTime(app.dateTime)}</p>
+          <ul className="space-y-2">
+            {appointments.slice().sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()).map(app => (
+              <li key={app.id} className="bg-blue-50 p-3 rounded-xl">
+                <p className="font-semibold text-sm text-blue-800">Dr. {app.doctor}</p>
+                <p className="text-sm text-slate-700">{app.location}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{formatDateTime(app.dateTime)}</p>
               </li>
             ))}
           </ul>

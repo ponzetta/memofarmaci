@@ -93,17 +93,16 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
         onCancel={() => setCropSource(null)}
       />
     )}
-    <div className="w-full h-full bg-white p-6 flex flex-col">
-      <header className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif text-slate-800">
+    <div className="w-full h-full bg-white flex flex-col">
+      <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+        <h1 className="text-xl font-bold">
           {existingMedication ? 'Modifica Farmaco' : 'Nuovo Farmaco'}
-        </h2>
-        <button onClick={onClose} className="text-2xl font-sans text-gray-500 hover:text-gray-800">&times;</button>
+        </h1>
       </header>
 
-      <main className="flex-grow flex flex-col justify-center">
+      <main className="flex-grow flex flex-col justify-center px-6">
         <div className="mb-6">
-          <label htmlFor="medicationName" className="block text-lg font-medium text-slate-600 mb-2">
+          <label htmlFor="medicationName" className="block text-sm font-medium text-slate-600 mb-2">
             Nome del Farmaco
           </label>
           <input
@@ -112,7 +111,7 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Es. Cardioaspirina"
-            className="w-full p-4 border-2 border-gray-200 rounded-xl text-xl focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
+            className="w-full p-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
           />
         </div>
 
@@ -151,20 +150,20 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
         </div>
       </main>
 
-      <footer className="mt-auto">
+      <footer className="mt-auto px-6 pb-6">
         <div className="flex gap-4">
-          <button
-            onClick={onClose}
-            className="w-full bg-gray-200 text-gray-800 text-xl font-bold py-5 rounded-2xl hover:bg-gray-300 transition-all"
-          >
-            Annulla
-          </button>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
+            className="w-full bg-[#0D9488] text-white text-sm font-semibold py-3 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
           >
-            {saving ? 'Salvataggio...' : existingMedication ? 'Salva Modifiche' : 'Salva Farmaco'}
+            {saving ? 'Salvataggio...' : 'Salva'}
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-200 text-gray-800 text-sm font-semibold py-3 rounded-2xl hover:bg-gray-300 transition-all"
+          >
+            Annulla
           </button>
         </div>
       </footer>
