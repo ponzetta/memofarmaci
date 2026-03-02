@@ -16,7 +16,6 @@ import android.webkit.WebViewClient
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -47,12 +46,8 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
-        // Passa da Theme.SplashScreen a un tema AppCompat prima di super.onCreate()
-        setTheme(R.style.AppTheme_NoActionBar)
         super.onCreate(savedInstanceState)
 
-        // Nasconde l'action bar nativa (il tema NoActionBar non sempre basta)
         supportActionBar?.hide()
 
         // Display edge-to-edge (status bar e navigation bar trasparenti)
