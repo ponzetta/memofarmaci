@@ -245,14 +245,35 @@ export default function App() {
     return () => { listenerPromise.then(h => h.remove()); };
   }, [todaysSchedule, alarmingScheduleId]);
 
+  // Cerca il primo farmaco scaduto nelle ultime 2 ore e non ancora assunto
+  const findOverdueMed = () => {
+    if (alarmingScheduleId) return null;
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    return todaysSchedule.find(item => {
+      if (item.taken) return false;
+      const [h, m] = item.time.split(':').map(Number);
+      const due = new Date(); due.setHours(h, m, 0, 0);
+      return due <= now && due > twoHoursAgo;
+    }) ?? null;
+  };
+
+  // Check immediato all'apertura: scatta appena todaysSchedule si popola
+  const initialAlarmCheckedRef = useRef(false);
+  useEffect(() => {
+    if (initialAlarmCheckedRef.current || todaysSchedule.length === 0) return;
+    initialAlarmCheckedRef.current = true;
+    const overdue = findOverdueMed();
+    if (overdue) setAlarmingScheduleId(overdue.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaysSchedule]);
+
+  // Check periodico ogni 10s: finestra 2 ore invece di match esatto al minuto
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      const dueMed = todaysSchedule.find(item => item.time === currentTime && !item.taken && !alarmingScheduleId);
-      if (dueMed) {
-        const medication = medications.find(m => m.id === dueMed.medicationId);
-        // Notification API può mancare o lanciare in Android WebView
+      const overdue = findOverdueMed();
+      if (overdue) {
+        const medication = medications.find(m => m.id === overdue.medicationId);
         try {
           if (typeof Notification !== 'undefined') {
             Notification.requestPermission().then(permission => {
@@ -265,7 +286,7 @@ export default function App() {
             }).catch(() => {});
           }
         } catch {}
-        setAlarmingScheduleId(dueMed.id);
+        setAlarmingScheduleId(overdue.id);
       }
     }, 10000);
     return () => clearInterval(interval);
