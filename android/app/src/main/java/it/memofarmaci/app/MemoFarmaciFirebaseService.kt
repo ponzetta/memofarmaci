@@ -27,10 +27,11 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
             ?: remoteMessage.data["body"]
             ?: ""
 
-        showNotification(title, body)
+        val planId = remoteMessage.data["planId"] ?: ""
+        showNotification(title, body, planId)
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(title: String, body: String, planId: String) {
         // ID deve corrispondere al channelId nel payload FCM del cron (api/push/cron.ts)
         val channelId = "memofarmaci-alarms"
         val notificationManager =
@@ -55,7 +56,7 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
             // Senza FLAG_ACTIVITY_CLEAR_TASK: con launchMode=singleTask, se l'app è in
             // background viene chiamato onNewIntent (niente reload); se è chiusa → onCreate.
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            putExtra("planId", remoteMessage.data["planId"] ?: "")
+            putExtra("planId", planId)
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,

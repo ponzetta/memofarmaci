@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
 import { useMedications } from './hooks/useMedications';
 import { useMedicationPlans } from './hooks/useMedicationPlans';
 import { useIntakeLogs } from './hooks/useIntakeLogs';
@@ -70,30 +69,6 @@ export default function App() {
   // Ref per il callback di allarme FCM — aggiornato ad ogni render
   const onAlarmRef = useRef<((planId: string) => void) | undefined>(undefined);
   usePushNotifications(undefined, (planId: string) => onAlarmRef.current?.(planId));
-
-  // Status bar trasparente su Android (sovrapposta al contenuto)
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    StatusBar.setOverlaysWebView({ overlay: true });
-    StatusBar.setStyle({ style: Style.Light });
-    // Diagnostic: verifica safe-area-inset-top
-    const div = document.createElement('div');
-    div.style.position = 'fixed';
-    div.style.top = '0';
-    div.style.paddingTop = 'env(safe-area-inset-top)';
-    document.body.appendChild(div);
-    const insetTop = getComputedStyle(div).paddingTop;
-    const insetBottom = (() => {
-      const d2 = document.createElement('div');
-      d2.style.paddingBottom = 'env(safe-area-inset-bottom)';
-      document.body.appendChild(d2);
-      const v = getComputedStyle(d2).paddingBottom;
-      document.body.removeChild(d2);
-      return v;
-    })();
-    document.body.removeChild(div);
-    console.log('[MF] safe-area-inset-top:', insetTop, 'bottom:', insetBottom, 'innerH:', window.innerHeight, 'screenH:', window.screen.height);
-  }, []);
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -382,7 +357,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
+    <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <OfflineBanner />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
       {showExitConfirm && (
@@ -422,17 +397,6 @@ export default function App() {
           onConfirm={() => { handleToggleTaken(viewingSchedule.id); setViewingScheduleId(null); }}
         />
       )}
-
-      <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))' }}>
-        <h1 className="text-3xl font-serif text-center">MemoFarmaci</h1>
-        <p className="text-center text-lg opacity-90">
-          {new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-        {/* DEBUG: rimuovere dopo il test */}
-        <p className="text-center text-xs opacity-70 mt-1">
-          Farmaci oggi: {todaysSchedule.length} | Non presi: {todaysSchedule.filter(i => !i.taken).length}
-        </p>
-      </header>
 
       <main className="flex-grow p-6 overflow-y-auto">
         {currentView === 'home' && (
