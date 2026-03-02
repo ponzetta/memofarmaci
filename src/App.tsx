@@ -119,9 +119,11 @@ export default function App() {
 
   useEffect(() => {
     if (alarmingScheduleId) {
+      // Su Android il suono nativo (RingtoneManager) è già in riproduzione:
+      // skippiamo Web Audio per evitare la sovrapposizione di due allarmi.
+      if ((window as any).AndroidBridge) return;
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
-      // Android richiede resume() esplicito prima di usare AudioContext
       if (ctx.state === 'suspended') ctx.resume();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();

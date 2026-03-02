@@ -31,6 +31,9 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnoo
   }, []);
 
   useEffect(() => {
+    // Su Android il suono nativo è già in riproduzione: non avviare l'audio HTML
+    if ((window as any).AndroidBridge) return;
+
     const alarmStartTime = Date.now();
     let soundInterval: ReturnType<typeof setInterval>;
 
