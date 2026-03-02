@@ -54,4 +54,10 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Wake lock: impedisce al device di dormire mentre processa il FCM -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Sveglie esatte: richiesto da setAlarmClock() su Android 12+ (targetSdk >= 31).
+         USE_EXACT_ALARM: concessa automaticamente all'installazione su Android 13+.
+         SCHEDULE_EXACT_ALARM: richiede approvazione in Impostazioni → Sveglie e promemoria
+         (usata come fallback su Android 12 e mostrata nelle impostazioni Samsung). -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

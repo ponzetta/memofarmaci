@@ -177,6 +177,10 @@ class MainActivity : AppCompatActivity() {
         // Chiedi di escludere l'app dalla battery optimization:
         // impedisce ad Android di uccidere FCM e i servizi in background
         requestIgnoreBatteryOptimization()
+
+        // Android 12 (API 31-32): SCHEDULE_EXACT_ALARM richiede approvazione utente.
+        // Su Android 13+ USE_EXACT_ALARM viene concessa automaticamente all'installazione.
+        requestExactAlarmPermission()
     }
 
     private fun createNotificationChannel() {
@@ -207,6 +211,32 @@ class MainActivity : AppCompatActivity() {
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
+        }
+    }
+
+    private fun requestExactAlarmPermission() {
+        // Su Android 13+ USE_EXACT_ALARM è concessa automaticamente: nessuna azione necessaria.
+        // Su Android 12 (API 31-32) SCHEDULE_EXACT_ALARM richiede che l'utente la abiliti
+        // in Impostazioni → App → MemoFarmaci → Sveglie e promemoria.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    // Fallback: apri le impostazioni generali dell'app
+                    try {
+                        startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:$packageName")
+                            }
+                        )
+                    } catch (_: Exception) {}
+                }
+            }
         }
     }
 
