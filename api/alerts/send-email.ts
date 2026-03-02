@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subject: `⚠️ Dose mancata: ${medName}`,
     html: `
       <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #5A5A40;">MemoFarmaci — Dose mancata</h2>
+        <h2 style="color: #0D9488;">MemoFarmaci — Dose mancata</h2>
         <p>Ciao ${caregiverName},</p>
         <p>L'assistito (<strong>${userName}</strong>) non ha preso <strong>${medName}</strong> previsto per le <strong>${time}</strong>.</p>
         <p>Ti invitiamo a contattarlo per verificare la situazione.</p>

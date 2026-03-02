@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col items-center justify-center p-8 gap-8">
       <div className="text-center">
-        <h1 className="text-4xl font-serif text-[#5A5A40] mb-2">MemoFarmaci</h1>
+        <h1 className="text-4xl font-serif text-[#0D9488] mb-2">MemoFarmaci</h1>
         <p className="text-lg text-slate-500">Il tuo promemoria farmaci personale</p>
       </div>
 

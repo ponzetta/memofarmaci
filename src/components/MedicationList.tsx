@@ -20,7 +20,7 @@ export default function MedicationList({ medications, onAdd, onEdit, onDelete, o
       <div className="mb-4 flex gap-4">
         <button
           onClick={onAdd}
-          className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90"
+          className="w-full flex items-center justify-center gap-2 bg-[#0D9488] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90"
         >
           <Plus size={24} />
           Aggiungi Farmaco

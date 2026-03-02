@@ -112,7 +112,7 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Es. Cardioaspirina"
-            className="w-full p-4 border-2 border-gray-200 rounded-xl text-xl focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+            className="w-full p-4 border-2 border-gray-200 rounded-xl text-xl focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
           />
         </div>
 
@@ -162,7 +162,7 @@ export default function AddMedication({ onAddMedication, onClose, existingMedica
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
+            className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
           >
             {saving ? 'Salvataggio...' : existingMedication ? 'Salva Modifiche' : 'Salva Farmaco'}
           </button>

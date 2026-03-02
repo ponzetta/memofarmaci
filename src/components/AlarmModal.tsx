@@ -52,7 +52,7 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm }: Alar
       <div className="bg-white rounded-3xl shadow-2xl p-8 m-4 max-w-md w-full text-center animate-pulse-slow">
         <BellRing size={60} className="mx-auto text-amber-500 mb-4" />
         <h2 className="text-4xl font-serif text-slate-800 mb-2">È ora di prendere:</h2>
-        <p className="text-5xl font-bold text-[#5A5A40] mb-6">{medication.name}</p>
+        <p className="text-5xl font-bold text-[#0D9488] mb-6">{medication.name}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
             <img src={medication.boxPhoto || 'https://picsum.photos/seed/box/400/400'} alt="Scatola" className="w-full h-40 object-contain rounded-lg bg-gray-100 p-2" />

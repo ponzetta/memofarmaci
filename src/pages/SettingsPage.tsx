@@ -43,14 +43,14 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#5A5A40] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
-      <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg flex items-center gap-4">
+      <header className="bg-[#0D9488] text-white p-6 rounded-b-3xl shadow-lg flex items-center gap-4">
         <button onClick={onClose} className="text-white text-2xl leading-none">&larr;</button>
         <h1 className="text-3xl font-serif">Impostazioni</h1>
       </header>
@@ -82,7 +82,7 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
             <select
               value={form.missedDoseAlertHours ?? 2}
               onChange={e => set('missedDoseAlertHours', parseInt(e.target.value))}
-              className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+              className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
             >
               {[1, 2, 3, 4, 6].map(h => (
                 <option key={h} value={h}>{h} {h === 1 ? 'ora' : 'ore'}</option>
@@ -131,7 +131,7 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
         <button
           type="submit"
           disabled={saving}
-          className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all"
+          className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all"
         >
           {saving ? 'Salvataggio...' : 'Salva modifiche'}
         </button>
@@ -155,7 +155,7 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-base font-semibold text-[#5A5A40] mb-3 uppercase tracking-wide">{title}</h3>
+      <h3 className="text-base font-semibold text-[#0D9488] mb-3 uppercase tracking-wide">{title}</h3>
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -173,7 +173,7 @@ function Field({
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+        className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
       />
     </div>
   );
@@ -215,7 +215,7 @@ function NotificationSection() {
           type="button"
           onClick={handleEnable}
           disabled={subscribing}
-          className="px-4 py-2 bg-[#5A5A40] text-white text-sm font-bold rounded-xl hover:bg-opacity-90 disabled:opacity-60 transition-all"
+          className="px-4 py-2 bg-[#0D9488] text-white text-sm font-bold rounded-xl hover:bg-opacity-90 disabled:opacity-60 transition-all"
         >
           {subscribing ? '...' : 'Attiva'}
         </button>
@@ -231,7 +231,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative w-12 h-6 rounded-full transition-colors ${value ? 'bg-[#5A5A40]' : 'bg-gray-300'}`}
+        className={`relative w-12 h-6 rounded-full transition-colors ${value ? 'bg-[#0D9488]' : 'bg-gray-300'}`}
       >
         <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-0'}`} />
       </button>

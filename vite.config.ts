@@ -25,7 +25,7 @@ export default defineConfig(({mode}) => {
           name: 'MemoFarmaci',
           short_name: 'MemoFarmaci',
           description: 'Un assistente per aiutarti a gestire i tuoi farmaci.',
-          theme_color: '#5A5A40',
+          theme_color: '#0D9488',
           background_color: '#ffffff',
           display: 'standalone',
           scope: '/',

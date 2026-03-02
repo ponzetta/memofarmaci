@@ -10,7 +10,7 @@ export default function AppRouter() {
     return (
       <div className="w-full max-w-md mx-auto h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[#5A5A40] border-t-transparent rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-[#0D9488] border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-500">Caricamento...</p>
         </div>
       </div>

@@ -82,7 +82,7 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
                   type="checkbox"
                   checked={noEndDate}
                   onChange={(e) => setNoEndDate(e.target.checked)}
-                  className="w-5 h-5 accent-[#5A5A40]"
+                  className="w-5 h-5 accent-[#0D9488]"
                 />
                 Senza data di fine
               </label>
@@ -124,7 +124,7 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
+            className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all transform active:scale-95"
           >
             {saving ? 'Salvataggio...' : existingPlan ? 'Salva Modifiche' : 'Aggiungi al Piano'}
           </button>

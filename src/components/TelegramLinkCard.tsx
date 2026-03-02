@@ -80,8 +80,8 @@ export default function TelegramLinkCard({ type, label, alreadyLinked, onLinked 
           <p className="text-sm text-slate-600">
             Scrivi al bot <strong>@{botName}</strong> il codice:
           </p>
-          <div className="bg-white border-2 border-[#5A5A40] rounded-xl p-4 text-center">
-            <span className="text-3xl font-mono font-bold text-[#5A5A40] tracking-widest">{token}</span>
+          <div className="bg-white border-2 border-[#0D9488] rounded-xl p-4 text-center">
+            <span className="text-3xl font-mono font-bold text-[#0D9488] tracking-widest">{token}</span>
           </div>
           <p className="text-xs text-slate-400 text-center">
             Scade alle {expiresAt ? new Date(expiresAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -92,7 +92,7 @@ export default function TelegramLinkCard({ type, label, alreadyLinked, onLinked 
         <button
           onClick={generateToken}
           disabled={loading}
-          className="w-full bg-[#5A5A40] text-white py-3 rounded-xl font-medium disabled:opacity-60"
+          className="w-full bg-[#0D9488] text-white py-3 rounded-xl font-medium disabled:opacity-60"
         >
           {loading ? 'Generazione...' : 'Genera codice'}
         </button>

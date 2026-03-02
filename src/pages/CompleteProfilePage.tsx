@@ -50,7 +50,7 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
-      <header className="bg-[#5A5A40] text-white p-6 rounded-b-3xl shadow-lg">
+      <header className="bg-[#0D9488] text-white p-6 rounded-b-3xl shadow-lg">
         <h1 className="text-3xl font-serif text-center">Completa il profilo</h1>
         <p className="text-center text-sm opacity-80 mt-1">Necessario per usare l'app</p>
       </header>
@@ -82,7 +82,7 @@ export default function CompleteProfilePage() {
             <select
               value={form.missedDoseAlertHours}
               onChange={e => set('missedDoseAlertHours', parseInt(e.target.value))}
-              className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+              className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
             >
               {[1, 2, 3, 4, 6].map(h => (
                 <option key={h} value={h}>{h} {h === 1 ? 'ora' : 'ore'}</option>
@@ -94,7 +94,7 @@ export default function CompleteProfilePage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full bg-[#5A5A40] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all"
+          className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all"
         >
           {saving ? 'Salvataggio...' : 'Salva e inizia'}
         </button>
@@ -106,7 +106,7 @@ export default function CompleteProfilePage() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-base font-semibold text-[#5A5A40] mb-3">{title}</h3>
+      <h3 className="text-base font-semibold text-[#0D9488] mb-3">{title}</h3>
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -129,7 +129,7 @@ function Field({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+        className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
       />
     </div>
   );

@@ -44,7 +44,7 @@ export default function SideEffects({ medications, sideEffects, onAddSideEffect,
           <select 
             value={selectedMed}
             onChange={(e) => setSelectedMed(e.target.value)}
-            className="w-full p-3 border-2 border-gray-200 rounded-lg bg-white text-lg focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+            className="w-full p-3 border-2 border-gray-200 rounded-lg bg-white text-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
           >
             {medications.map(med => (
               <option key={med.id} value={med.id}>{med.name}</option>
@@ -55,11 +55,11 @@ export default function SideEffects({ medications, sideEffects, onAddSideEffect,
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Descrivi l'effetto..."
             rows={3}
-            className="w-full p-3 border-2 border-gray-200 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#5A5A40]"
+            className="w-full p-3 border-2 border-gray-200 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
           />
           <div className="flex gap-4">
             <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg text-lg font-bold">Annulla</button>
-            <button onClick={handleSubmit} className="w-full bg-[#5A5A40] text-white py-3 rounded-lg text-lg font-bold">Salva</button>
+            <button onClick={handleSubmit} className="w-full bg-[#0D9488] text-white py-3 rounded-lg text-lg font-bold">Salva</button>
           </div>
         </div>
       </section>

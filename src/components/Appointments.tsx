@@ -43,7 +43,7 @@ export default function Appointments({ appointments, onAddAppointment, onClose }
           <input type="datetime-local" value={dateTime} onChange={e => setDateTime(e.target.value)} className="w-full p-3 border-2 rounded-lg" />
           <div className="flex gap-4">
             <button onClick={onClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg text-lg font-bold">Annulla</button>
-            <button onClick={handleSubmit} className="w-full bg-[#5A5A40] text-white py-3 rounded-lg text-lg font-bold">Salva Appuntamento</button>
+            <button onClick={handleSubmit} className="w-full bg-[#0D9488] text-white py-3 rounded-lg text-lg font-bold">Salva Appuntamento</button>
           </div>
         </div>
       </section>

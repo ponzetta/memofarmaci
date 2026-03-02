@@ -374,7 +374,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => { setShowExitConfirm(false); CapApp.minimizeApp(); }}
-                className="px-5 py-2 rounded-xl bg-[#5A5A40] text-white font-medium hover:bg-opacity-90"
+                className="px-5 py-2 rounded-xl bg-[#0D9488] text-white font-medium hover:bg-opacity-90"
               >
                 Sospendi
               </button>
@@ -398,11 +398,28 @@ export default function App() {
         />
       )}
 
+      {currentView === 'home' && (
+        <header className="bg-[#0D9488] text-white px-6 pt-5 pb-6 rounded-b-3xl shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">MemoFarmaci</h1>
+              <p className="text-sm opacity-80 mt-0.5 capitalize">
+                {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+            <div className="bg-white/20 rounded-2xl px-4 py-2 text-center min-w-[60px]">
+              <p className="text-2xl font-bold leading-none">{todaysSchedule.filter(i => !i.taken).length}</p>
+              <p className="text-xs opacity-90 mt-0.5">da prendere</p>
+            </div>
+          </div>
+        </header>
+      )}
+
       <main className="flex-grow p-6 overflow-y-auto">
         {currentView === 'home' && (
           <button
             onClick={() => setCurrentView('planManager')}
-            className="w-full flex items-center justify-center gap-2 bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4"
+            className="w-full flex items-center justify-center gap-2 bg-[#0D9488] text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 mb-4"
           >
             <Bell size={28} />
             Gestione Piani
@@ -460,12 +477,12 @@ export default function App() {
       </main>
 
       <footer className="bg-white border-t-2 border-gray-100 p-4 flex justify-around items-center rounded-t-3xl" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-        <button onClick={() => setCurrentView('home')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Home size={28} /></button>
-        <button onClick={() => setCurrentView('appointments')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarPlus size={28} /></button>
-        <button onClick={() => setCurrentView('history')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><CalendarClock size={28} /></button>
-        <button onClick={() => setCurrentView('sideEffects')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><FileHeart size={28} /></button>
-        <button onClick={() => setCurrentView('medications')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Pill size={28} /></button>
-        <button onClick={() => setCurrentView('settings')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#5A5A40]"><Settings size={28} /></button>
+        <button onClick={() => setCurrentView('home')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><Home size={28} /></button>
+        <button onClick={() => setCurrentView('appointments')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><CalendarPlus size={28} /></button>
+        <button onClick={() => setCurrentView('history')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><CalendarClock size={28} /></button>
+        <button onClick={() => setCurrentView('sideEffects')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><FileHeart size={28} /></button>
+        <button onClick={() => setCurrentView('medications')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><Pill size={28} /></button>
+        <button onClick={() => setCurrentView('settings')} className="p-3 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0D9488]"><Settings size={28} /></button>
       </footer>
     </div>
   );

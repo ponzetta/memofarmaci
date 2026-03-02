@@ -49,7 +49,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 <body style="font-family:sans-serif;text-align:center;padding:2rem">
   <p>Accesso in corso, attendi...</p>
   <p style="margin-top:1rem">
-    <a href="${intentUrl}" style="display:inline-block;margin:0.5rem;padding:0.8rem 1.5rem;background:#5A5A40;color:white;border-radius:8px;text-decoration:none;font-weight:bold">
+    <a href="${intentUrl}" style="display:inline-block;margin:0.5rem;padding:0.8rem 1.5rem;background:#0D9488;color:white;border-radius:8px;text-decoration:none;font-weight:bold">
       Apri MemoFarmaci
     </a>
   </p>

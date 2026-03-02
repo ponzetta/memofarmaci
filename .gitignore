@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+# credenziali e file sensibili
+file/firebase.json
+firebase.jpg
+supabase/.temp/
+file/Nuovo Documento di testo.txt

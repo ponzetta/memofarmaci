@@ -63,7 +63,7 @@ export default function CropModal({ imageSrc, onConfirm, onCancel }: CropModalPr
         </button>
         <button
           onClick={handleConfirm}
-          className="w-full bg-[#5A5A40] text-white text-xl font-bold py-4 rounded-2xl hover:bg-opacity-90 transition-all"
+          className="w-full bg-[#0D9488] text-white text-xl font-bold py-4 rounded-2xl hover:bg-opacity-90 transition-all"
         >
           Ritaglia
         </button>
