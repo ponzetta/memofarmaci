@@ -100,6 +100,11 @@ export default function App() {
   const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
 
+  // Snooze: mappa planId → timestamp scadenza snooze, persistita in localStorage
+  const [snoozeMap, setSnoozeMap] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('mf_snooze') || '{}'); } catch { return {}; }
+  });
+
   // Aggiorna il callback FCM/nativo con i valori correnti
   onAlarmRef.current = (planId: string) => {
     const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
@@ -245,13 +250,15 @@ export default function App() {
     return () => { listenerPromise.then(h => h.remove()); };
   }, [todaysSchedule, alarmingScheduleId]);
 
-  // Cerca il primo farmaco scaduto nelle ultime 2 ore e non ancora assunto
+  // Cerca il primo farmaco scaduto nelle ultime 2 ore, non assunto e non in snooze
   const findOverdueMed = () => {
     if (alarmingScheduleId) return null;
     const now = new Date();
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     return todaysSchedule.find(item => {
       if (item.taken) return false;
+      const snoozeUntil = snoozeMap[item.planId];
+      if (snoozeUntil && Date.now() < snoozeUntil) return false;
       const [h, m] = item.time.split(':').map(Number);
       const due = new Date(); due.setHours(h, m, 0, 0);
       return due <= now && due > twoHoursAgo;
@@ -326,6 +333,21 @@ export default function App() {
       await logIntake(item.planId, item.medicationId, todayStr, item.time);
       setToastMessage('Assunzione del farmaco registrata, Grazie');
     }
+  };
+
+  const handleSnooze = (planId: string, minutes: number) => {
+    const snoozeUntil = Date.now() + minutes * 60 * 1000;
+    // Salva in localStorage (pulizia entries scadute)
+    const now = Date.now();
+    const updated: Record<string, number> = {};
+    Object.entries(snoozeMap).forEach(([id, until]) => { if (until > now) updated[id] = until; });
+    updated[planId] = snoozeUntil;
+    setSnoozeMap(updated);
+    localStorage.setItem('mf_snooze', JSON.stringify(updated));
+    // Android nativo: AlarmManager sveglia l'app allo scadere dello snooze
+    const bridge = (window as unknown as { AndroidBridge?: { scheduleSnoozeAlarm?: (planId: string, delayMs: number) => void } }).AndroidBridge;
+    bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000);
+    setAlarmingScheduleId(null);
   };
 
   const getMedicationName = (id: string) => medications.find(m => m.id === id)?.name || 'Sconosciuto';
@@ -408,6 +430,7 @@ export default function App() {
           scheduleItem={alarmingSchedule}
           medication={alarmingMedication}
           onConfirm={() => { handleToggleTaken(alarmingSchedule.id); setAlarmingScheduleId(null); }}
+          onSnooze={(minutes) => handleSnooze(alarmingSchedule.planId, minutes)}
         />
       )}
       {viewingSchedule && viewingMedication && (

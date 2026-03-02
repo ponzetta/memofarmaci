@@ -22,4 +22,10 @@ class WebAppInterface(private val activity: MainActivity) {
     /** React chiama questo al mount per recuperare un planId di allarme pendente */
     @JavascriptInterface
     fun getAlarmPlanId(): String = activity.getAlarmPlanId()
+
+    /** Schedula un allarme nativo (snooze) via AlarmManager */
+    @JavascriptInterface
+    fun scheduleSnoozeAlarm(planId: String, delayMs: Long) {
+        activity.scheduleSnoozeAlarm(planId, delayMs)
+    }
 }

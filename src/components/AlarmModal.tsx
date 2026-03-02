@@ -1,15 +1,33 @@
-import { useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Medication, TodaysScheduleItem } from '../types';
-import { BellRing } from 'lucide-react';
+import { BellRing, Clock } from 'lucide-react';
 
 interface AlarmModalProps {
   scheduleItem: TodaysScheduleItem;
   medication: Medication;
   onConfirm: () => void;
+  onSnooze: (minutes: number) => void;
 }
 
-export default function AlarmModal({ scheduleItem, medication, onConfirm }: AlarmModalProps) {
+export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnooze }: AlarmModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // I bottoni snooze si abilitano solo dopo l'orario pianificato
+  const [canSnooze, setCanSnooze] = useState(() => {
+    const [h, m] = scheduleItem.time.split(':').map(Number);
+    const due = new Date(); due.setHours(h, m, 0, 0);
+    return new Date() >= due;
+  });
+
+  useEffect(() => {
+    if (canSnooze) return;
+    const [h, m] = scheduleItem.time.split(':').map(Number);
+    const due = new Date(); due.setHours(h, m, 0, 0);
+    const msUntilDue = due.getTime() - Date.now();
+    if (msUntilDue <= 0) { setCanSnooze(true); return; }
+    const timer = setTimeout(() => setCanSnooze(true), msUntilDue);
+    return () => clearTimeout(timer);
+  }, [scheduleItem.time, canSnooze]);
 
   useEffect(() => {
     const alarmStartTime = Date.now();
@@ -32,20 +50,18 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm }: Alar
         stopSound();
         return;
       }
-
       playSound();
-      setTimeout(stopSound, 30 * 1000); // Suona per 30 secondi
+      setTimeout(stopSound, 30 * 1000);
     };
 
-    soundCycle(); // Avvia subito il primo ciclo
-    soundInterval = setInterval(soundCycle, 60 * 1000); // Ripeti ogni 60s (30s on + 30s off)
+    soundCycle();
+    soundInterval = setInterval(soundCycle, 60 * 1000);
 
-    // Funzione di pulizia che viene eseguita quando il componente viene smontato
     return () => {
       clearInterval(soundInterval);
       stopSound();
     };
-  }, []); // L'array vuoto assicura che l'effetto venga eseguito solo al montaggio e smontaggio
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
@@ -55,21 +71,38 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm }: Alar
         <p className="text-5xl font-bold text-[#0D9488] mb-6">{medication.name}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
-            <img src={medication.boxPhoto || 'https://picsum.photos/seed/box/400/400'} alt="Scatola" className="w-full h-40 object-contain rounded-lg bg-gray-100 p-2" />
-            <img src={medication.pillPhoto || 'https://picsum.photos/seed/pill/400/400'} alt="Pillola" className="w-full h-40 object-contain rounded-lg bg-gray-100 p-2" />
+          <img src={medication.boxPhoto || 'https://picsum.photos/seed/box/400/400'} alt="Scatola" className="w-full h-40 object-contain rounded-lg bg-gray-100 p-2" />
+          <img src={medication.pillPhoto || 'https://picsum.photos/seed/pill/400/400'} alt="Pillola" className="w-full h-40 object-contain rounded-lg bg-gray-100 p-2" />
         </div>
 
-        <p className="text-3xl text-slate-600 mb-8">Dose: <span className="font-bold">{scheduleItem.dosage}</span></p>
+        <p className="text-3xl text-slate-600 mb-6">Dose: <span className="font-bold">{scheduleItem.dosage}</span></p>
 
-        <button 
+        <button
           onClick={onConfirm}
-          className="w-full bg-green-600 text-white text-3xl font-bold py-6 rounded-2xl shadow-lg hover:bg-green-700 transition-all transform active:scale-95"
+          className="w-full bg-green-600 text-white text-3xl font-bold py-6 rounded-2xl shadow-lg hover:bg-green-700 transition-all transform active:scale-95 mb-3"
         >
           Ho preso la medicina
         </button>
+
+        {/* Bottoni snooze: abilitati solo dopo l'orario pianificato */}
+        <div className="flex gap-2">
+          {[5, 15, 30].map(min => (
+            <button
+              key={min}
+              onClick={() => onSnooze(min)}
+              disabled={!canSnooze}
+              className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl text-sm font-medium transition-all
+                ${canSnooze
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 active:scale-95'
+                  : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+            >
+              <Clock size={14} />
+              +{min} min
+            </button>
+          ))}
+        </div>
       </div>
       <audio ref={audioRef} src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" />
     </div>
   );
 }
-

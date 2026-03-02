@@ -3,8 +3,10 @@ package it.memofarmaci.app
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -264,6 +266,29 @@ class MainActivity : AppCompatActivity() {
                 "window.onAlarmFromNotification && window.onAlarmFromNotification('$escaped')",
                 null
             )
+        }
+    }
+
+    /**
+     * Schedula un allarme nativo via AlarmManager che scatta dopo delayMs millisecondi.
+     * Chiamato da WebAppInterface.scheduleSnoozeAlarm() tramite il bridge JS.
+     */
+    fun scheduleSnoozeAlarm(planId: String, delayMs: Long) {
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, SnoozeReceiver::class.java).apply {
+            putExtra("planId", planId)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            planId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val triggerAt = System.currentTimeMillis() + delayMs
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        } else {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
         }
     }
 
