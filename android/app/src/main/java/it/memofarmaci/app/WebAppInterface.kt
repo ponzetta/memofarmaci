@@ -18,4 +18,8 @@ class WebAppInterface(private val activity: MainActivity) {
     /** React chiama questo quando è pronto per ricevere il token FCM */
     @JavascriptInterface
     fun getFcmToken(): String = activity.getCurrentFcmToken()
+
+    /** React chiama questo al mount per recuperare un planId di allarme pendente */
+    @JavascriptInterface
+    fun getAlarmPlanId(): String = activity.getAlarmPlanId()
 }

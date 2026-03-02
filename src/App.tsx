@@ -227,6 +227,36 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
 
+  // Android WebView nativo: tap su notifica FCM → alarm modal
+  const [pendingAlarmPlanId, setPendingAlarmPlanId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const bridge = (window as unknown as { AndroidBridge?: { getAlarmPlanId?: () => string } }).AndroidBridge;
+
+    // Callback per quando l'app è in background (fired da onNewIntent in MainActivity)
+    (window as unknown as { onAlarmFromNotification?: (planId: string) => void }).onAlarmFromNotification =
+      (planId: string) => setPendingAlarmPlanId(planId);
+
+    // Pull per quando l'app era chiusa (planId salvato in MainActivity.pendingAlarmPlanId)
+    const pulled = bridge?.getAlarmPlanId?.();
+    if (pulled) setPendingAlarmPlanId(pulled);
+
+    return () => {
+      (window as unknown as { onAlarmFromNotification?: unknown }).onAlarmFromNotification = undefined;
+    };
+  }, []);
+
+  // Quando todaysSchedule è pronto (o pendingAlarmPlanId cambia), consuma il planId
+  useEffect(() => {
+    if (!pendingAlarmPlanId || todaysSchedule.length === 0) return;
+    const item = todaysSchedule.find(s => s.planId === pendingAlarmPlanId && !s.taken);
+    if (item && !alarmingScheduleId) {
+      setAlarmingScheduleId(item.id);
+      setPendingAlarmPlanId(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAlarmPlanId, todaysSchedule]);
+
   // Deep link nativo Capacitor: tap su notifica FCM → apre alarm modal
   useEffect(() => {
     const listenerPromise = CapApp.addListener('appUrlOpen', ({ url }) => {

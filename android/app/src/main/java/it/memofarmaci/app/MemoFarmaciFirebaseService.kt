@@ -51,7 +51,11 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
         }
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // FLAG_ACTIVITY_NEW_TASK: necessario dal contesto Service.
+            // Senza FLAG_ACTIVITY_CLEAR_TASK: con launchMode=singleTask, se l'app è in
+            // background viene chiamato onNewIntent (niente reload); se è chiusa → onCreate.
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra("planId", remoteMessage.data["planId"] ?: "")
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,

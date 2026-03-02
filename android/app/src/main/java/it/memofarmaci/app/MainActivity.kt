@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -31,6 +32,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private var currentFcmToken: String? = null
+    // planId da consegnare alla WebView (tap su notifica FCM)
+    private var pendingAlarmPlanId: String? = null
 
     // Launcher per richiedere POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher =
@@ -81,6 +84,14 @@ class MainActivity : AppCompatActivity() {
                 // Passa il token FCM alla WebView dopo il caricamento completo della pagina,
                 // così window.onFcmToken è già registrato dal codice React
                 registerFcmToken()
+                // Consegna l'allarme pendente (app era chiusa, ora React è montato)
+                // Usiamo un delay per dare a React il tempo di registrare window.onAlarmFromNotification
+                pendingAlarmPlanId?.let { planId ->
+                    webView.postDelayed({
+                        deliverAlarmPlanId(planId)
+                        pendingAlarmPlanId = null
+                    }, 1500)
+                }
             }
         }
 
@@ -88,6 +99,11 @@ class MainActivity : AppCompatActivity() {
 
         // Carica l'app React da Vercel
         webView.loadUrl("https://memofarmaci-wm25.vercel.app")
+
+        // Leggi planId dall'intent se l'app era chiusa (FCM notification tap)
+        intent.getStringExtra("planId")?.takeIf { it.isNotEmpty() }?.let {
+            pendingAlarmPlanId = it
+        }
 
         // Android 13+: richiedi permesso notifiche push
         requestNotificationPermission()
@@ -183,6 +199,33 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /** App in background: tap su notifica FCM → onNewIntent */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val planId = intent.getStringExtra("planId") ?: return
+        if (planId.isEmpty()) return
+        // WebView già caricata → consegna subito
+        deliverAlarmPlanId(planId)
+    }
+
+    private fun deliverAlarmPlanId(planId: String) {
+        val escaped = planId.replace("'", "\\'")
+        webView.post {
+            webView.evaluateJavascript(
+                "window.onAlarmFromNotification && window.onAlarmFromNotification('$escaped')",
+                null
+            )
+        }
+    }
+
+    /** React chiama questo al mount per controllare se c'è un allarme pendente */
+    fun getAlarmPlanId(): String {
+        val id = pendingAlarmPlanId ?: ""
+        pendingAlarmPlanId = null
+        return id
     }
 
     @Deprecated("Deprecated in Java")
