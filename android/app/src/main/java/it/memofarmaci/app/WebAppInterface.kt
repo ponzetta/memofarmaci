@@ -23,9 +23,11 @@ class WebAppInterface(private val activity: MainActivity) {
     @JavascriptInterface
     fun getAlarmPlanId(): String = activity.getAlarmPlanId()
 
-    /** Schedula un allarme nativo (snooze) via AlarmManager */
+    /** Schedula un allarme nativo (snooze) via AlarmManager.
+     *  delayMs è Double perché JavaScript non ha Long e il WebView bridge
+     *  mappa i numeri JS a double Java: se usiamo Long il metodo non viene trovato. */
     @JavascriptInterface
-    fun scheduleSnoozeAlarm(planId: String, delayMs: Long) {
-        activity.scheduleSnoozeAlarm(planId, delayMs)
+    fun scheduleSnoozeAlarm(planId: String, delayMs: Double) {
+        activity.scheduleSnoozeAlarm(planId, delayMs.toLong())
     }
 }

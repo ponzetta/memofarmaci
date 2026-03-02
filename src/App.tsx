@@ -337,17 +337,20 @@ export default function App() {
 
   const handleSnooze = (planId: string, minutes: number) => {
     const snoozeUntil = Date.now() + minutes * 60 * 1000;
-    // Salva in localStorage (pulizia entries scadute)
+    // Aggiorna snoozeMap (pulizia entries scadute)
     const now = Date.now();
     const updated: Record<string, number> = {};
     Object.entries(snoozeMap).forEach(([id, until]) => { if (until > now) updated[id] = until; });
     updated[planId] = snoozeUntil;
     setSnoozeMap(updated);
     localStorage.setItem('mf_snooze', JSON.stringify(updated));
-    // Android nativo: AlarmManager sveglia l'app allo scadere dello snooze
-    const bridge = (window as unknown as { AndroidBridge?: { scheduleSnoozeAlarm?: (planId: string, delayMs: number) => void } }).AndroidBridge;
-    bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000);
+    // Chiude il modal subito, indipendentemente dal bridge Android
     setAlarmingScheduleId(null);
+    // Android nativo: AlarmManager sveglia l'app allo scadere dello snooze
+    try {
+      const bridge = (window as unknown as { AndroidBridge?: { scheduleSnoozeAlarm?: (planId: string, delayMs: number) => void } }).AndroidBridge;
+      bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000);
+    } catch { /* bridge non disponibile (browser/iOS) */ }
   };
 
   const getMedicationName = (id: string) => medications.find(m => m.id === id)?.name || 'Sconosciuto';

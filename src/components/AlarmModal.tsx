@@ -12,22 +12,23 @@ interface AlarmModalProps {
 export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnooze }: AlarmModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // I bottoni snooze si abilitano solo dopo l'orario pianificato
-  const [canSnooze, setCanSnooze] = useState(() => {
+  // I bottoni snooze si abilitano dopo l'orario pianificato
+  // Calcoliamo il ritardo rispetto a adesso: se già passato, enabled subito
+  const getSnoozeDelay = () => {
     const [h, m] = scheduleItem.time.split(':').map(Number);
     const due = new Date(); due.setHours(h, m, 0, 0);
-    return new Date() >= due;
-  });
+    return Math.max(0, due.getTime() - Date.now());
+  };
+  const [canSnooze, setCanSnooze] = useState(() => getSnoozeDelay() === 0);
 
   useEffect(() => {
     if (canSnooze) return;
-    const [h, m] = scheduleItem.time.split(':').map(Number);
-    const due = new Date(); due.setHours(h, m, 0, 0);
-    const msUntilDue = due.getTime() - Date.now();
-    if (msUntilDue <= 0) { setCanSnooze(true); return; }
-    const timer = setTimeout(() => setCanSnooze(true), msUntilDue);
+    const delay = getSnoozeDelay();
+    if (delay === 0) { setCanSnooze(true); return; }
+    const timer = setTimeout(() => setCanSnooze(true), delay);
     return () => clearTimeout(timer);
-  }, [scheduleItem.time, canSnooze]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const alarmStartTime = Date.now();
