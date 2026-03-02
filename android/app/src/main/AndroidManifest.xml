@@ -49,6 +49,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Permesso per escludere l'app dalla battery optimization (necessario per FCM affidabile) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Full-screen intent: porta l'app in foreground come una sveglia (lock screen incluso) -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Wake lock: impedisce al device di dormire mentre processa il FCM -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

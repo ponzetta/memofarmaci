@@ -183,6 +183,7 @@ class MainActivity : AppCompatActivity() {
                 description = "Notifiche per la presa dei farmaci"
                 enableVibration(true)
                 enableLights(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             manager.createNotificationChannel(channel)
         }

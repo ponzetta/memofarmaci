@@ -1,5 +1,6 @@
 package it.memofarmaci.app
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -38,14 +39,11 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
     }
 
     private fun showNotification(title: String, body: String, planId: String) {
-        // ID deve corrispondere al channelId nel payload FCM del cron (api/push/cron.ts)
         val channelId = "memofarmaci-alarms"
         val notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Il canale viene creato in MainActivity.onCreate, ma lo riaggiungiamo
-            // qui per sicurezza nel caso il servizio venga avviato prima dell'Activity
             val channel = NotificationChannel(
                 channelId,
                 "Promemoria farmaci",
@@ -53,19 +51,27 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
             ).apply {
                 enableVibration(true)
                 enableLights(true)
+                // Mostra la notifica anche sulla lock screen
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             notificationManager.createNotificationChannel(channel)
         }
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            // FLAG_ACTIVITY_NEW_TASK: necessario dal contesto Service.
-            // Senza FLAG_ACTIVITY_CLEAR_TASK: con launchMode=singleTask, se l'app è in
-            // background viene chiamato onNewIntent (niente reload); se è chiusa → onCreate.
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("planId", planId)
         }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
+        // contentIntent: tap sulla notifica nel cassetto
+        val contentPendingIntent = PendingIntent.getActivity(
+            this, planId.hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        // fullScreenIntent: porta l'app in foreground automaticamente (come sveglia)
+        // Su Samsung/MIUI bypassa le restrizioni sulla WebView in background.
+        // Con launchMode=singleTask → onNewIntent() se l'app è in background,
+        // onCreate() se è chiusa.
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this, planId.hashCode() + 1, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -73,11 +79,14 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setContentIntent(contentPendingIntent)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        notificationManager.notify(planId.hashCode(), notification)
     }
 }
