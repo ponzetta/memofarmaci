@@ -361,6 +361,10 @@ class MainActivity : AppCompatActivity() {
         // Risveglia la WebView prima di consegnare (potrebbe essere in pausa)
         webView.onResume()
         webView.resumeTimers()
+        // Svuota SharedPreferences: onResume() parte subito dopo onNewIntent e
+        // senza questo troverebbe lo stesso planId, consegnandolo una seconda volta
+        // (causerebbe la riapertura della modale dopo che l'utente l'ha già confermata).
+        getSharedPreferences("mf_prefs", MODE_PRIVATE).edit().remove("pending_plan_id").apply()
         // WebView già caricata → consegna subito
         deliverAlarmPlanId(planId)
     }
