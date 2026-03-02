@@ -52,6 +52,9 @@ class MainActivity : AppCompatActivity() {
         setTheme(R.style.AppTheme_NoActionBar)
         super.onCreate(savedInstanceState)
 
+        // Nasconde l'action bar nativa (il tema NoActionBar non sempre basta)
+        supportActionBar?.hide()
+
         // Display edge-to-edge (status bar e navigation bar trasparenti)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
@@ -86,11 +89,10 @@ class MainActivity : AppCompatActivity() {
                 registerFcmToken()
                 // Consegna l'allarme pendente (app era chiusa, ora React è montato)
                 // Usiamo un delay per dare a React il tempo di registrare window.onAlarmFromNotification
-                pendingAlarmPlanId?.let { planId ->
-                    webView.postDelayed({
-                        deliverAlarmPlanId(planId)
-                        pendingAlarmPlanId = null
-                    }, 1500)
+                val planIdToDeliver = pendingAlarmPlanId
+                if (planIdToDeliver != null) {
+                    pendingAlarmPlanId = null
+                    view.postDelayed(Runnable { deliverAlarmPlanId(planIdToDeliver) }, 1500L)
                 }
             }
         }
