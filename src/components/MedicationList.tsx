@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Medication } from '../types';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
@@ -10,6 +11,8 @@ interface MedicationListProps {
 }
 
 export default function MedicationList({ medications, onAdd, onEdit, onDelete, onClose }: MedicationListProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   return (
     <div className="w-full h-full bg-white flex flex-col">
       <header className="bg-[#0D9488] text-white px-6 pb-4 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}>
@@ -35,21 +38,43 @@ export default function MedicationList({ medications, onAdd, onEdit, onDelete, o
         ) : (
           <ul className="space-y-2">
             {medications.map(med => (
-              <li key={med.id} className="bg-gray-50 px-4 py-3 rounded-xl flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  {med.pillPhoto && (
-                    <img src={med.pillPhoto} alt={med.name} className="w-10 h-10 object-cover rounded-lg" />
-                  )}
-                  <p className="font-semibold text-sm text-slate-800">{med.name}</p>
-                </div>
-                <div className="flex items-center">
-                  <button onClick={() => onEdit(med)} className="text-blue-500 hover:text-blue-700 p-1.5">
-                    <Pencil size={18} />
-                  </button>
-                  <button onClick={() => onDelete(med.id)} className="text-red-500 hover:text-red-700 p-1.5">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+              <li key={med.id} className="bg-gray-50 px-4 py-3 rounded-xl">
+                {pendingDeleteId === med.id ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-slate-700 font-medium">Eliminare <span className="font-bold">{med.name}</span>?</p>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => { onDelete(med.id); setPendingDeleteId(null); }}
+                        className="bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-600"
+                      >
+                        Cancella
+                      </button>
+                      <button
+                        onClick={() => setPendingDeleteId(null)}
+                        className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-300"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      {med.pillPhoto && (
+                        <img src={med.pillPhoto} alt={med.name} className="w-10 h-10 object-cover rounded-lg" />
+                      )}
+                      <p className="font-semibold text-sm text-slate-800">{med.name}</p>
+                    </div>
+                    <div className="flex items-center">
+                      <button onClick={() => onEdit(med)} className="text-blue-500 hover:text-blue-700 p-1.5">
+                        <Pencil size={18} />
+                      </button>
+                      <button onClick={() => setPendingDeleteId(med.id)} className="text-red-500 hover:text-red-700 p-1.5">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

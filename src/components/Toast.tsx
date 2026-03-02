@@ -17,8 +17,8 @@ export default function Toast({ message, onClose }: ToastProps) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-bounce">
-      <p>{message}</p>
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-8 py-3.5 rounded-2xl shadow-lg z-50 animate-bounce w-max max-w-xs text-center text-sm font-medium">
+      {message}
     </div>
   );
 }

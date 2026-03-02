@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Medication, MedicationPlan } from '../types';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 
@@ -11,9 +12,11 @@ interface PlanManagerProps {
 }
 
 export default function PlanManager({ plans, medications, onAddNew, onDelete, onEdit, onClose }: PlanManagerProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const getMedicationName = (id: string) => {
     return medications.find(m => m.id === id)?.name || 'Sconosciuto';
-  }
+  };
 
   return (
     <div className="w-full h-full bg-white flex flex-col">
@@ -39,20 +42,44 @@ export default function PlanManager({ plans, medications, onAddNew, onDelete, on
         ) : (
           <ul className="space-y-2">
             {plans.map(plan => (
-              <li key={plan.id} className="bg-gray-50 px-4 py-3 rounded-xl flex justify-between items-center">
-                <div>
-                  <p className="font-semibold text-sm text-slate-800">{getMedicationName(plan.medicationId)}</p>
-                  <p className="text-sm text-slate-600">{plan.dosage} alle {plan.time}</p>
-                  <p className="text-xs text-slate-500">Dal {plan.startDate}{plan.endDate === '2099-12-31' ? ' · Nessuna scadenza' : ` al ${plan.endDate}`}</p>
-                </div>
-                <div className="flex items-center">
-                  <button onClick={() => onEdit(plan)} className="text-blue-500 hover:text-blue-700 p-1.5">
-                    <Pencil size={18} />
-                  </button>
-                  <button onClick={() => onDelete(plan.id)} className="text-red-500 hover:text-red-700 p-1.5">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+              <li key={plan.id} className="bg-gray-50 px-4 py-3 rounded-xl">
+                {pendingDeleteId === plan.id ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-slate-700 font-medium">
+                      Eliminare il piano di <span className="font-bold">{getMedicationName(plan.medicationId)}</span>?
+                    </p>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => { onDelete(plan.id); setPendingDeleteId(null); }}
+                        className="bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-600"
+                      >
+                        Cancella
+                      </button>
+                      <button
+                        onClick={() => setPendingDeleteId(null)}
+                        className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-300"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-sm text-slate-800">{getMedicationName(plan.medicationId)}</p>
+                      <p className="text-sm text-slate-600">{plan.dosage} alle {plan.time}</p>
+                      <p className="text-xs text-slate-500">Dal {plan.startDate}{plan.endDate === '2099-12-31' ? ' · Nessuna scadenza' : ` al ${plan.endDate}`}</p>
+                    </div>
+                    <div className="flex items-center">
+                      <button onClick={() => onEdit(plan)} className="text-blue-500 hover:text-blue-700 p-1.5">
+                        <Pencil size={18} />
+                      </button>
+                      <button onClick={() => setPendingDeleteId(plan.id)} className="text-red-500 hover:text-red-700 p-1.5">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
