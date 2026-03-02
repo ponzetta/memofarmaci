@@ -119,9 +119,10 @@ export default function App() {
 
   useEffect(() => {
     if (alarmingScheduleId) {
-      // Su Android il suono nativo (RingtoneManager) è già in riproduzione:
-      // skippiamo Web Audio per evitare la sovrapposizione di due allarmi.
-      if ((window as any).AndroidBridge) return;
+      // Ferma il ringtone nativo (se stava suonando da background/SnoozeReceiver)
+      // e prende il controllo del suono con Web Audio. Così c'è sempre un solo suono
+      // sia in foreground (Web Audio diretto) sia in background (nativo → passaggio a Web Audio).
+      try { (window as any).AndroidBridge?.stopAlarmSound?.(); } catch { /* noop */ }
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
       if (ctx.state === 'suspended') ctx.resume();
