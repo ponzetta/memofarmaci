@@ -39,12 +39,6 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        // Riferimento debole all'istanza attiva: usato dal FCM service per
-        // consegnare il planId direttamente alla WebView quando l'app è in background.
-        var instance: java.lang.ref.WeakReference<MainActivity>? = null
-    }
-
     private lateinit var webView: WebView
     private var currentFcmToken: String? = null
     // planId da consegnare alla WebView (tap su notifica FCM)
@@ -75,6 +69,10 @@ class MainActivity : AppCompatActivity() {
         // Web Client ID del progetto Supabase (815488260722), NON del progetto Firebase
         const val WEB_CLIENT_ID =
             "815488260722-nu7nsn9m8tlrpk9pqb97j3ra7cslkhsv.apps.googleusercontent.com"
+
+        // Riferimento debole all'istanza attiva: usato da MemoFarmaciFirebaseService per
+        // consegnare il planId direttamente alla WebView quando l'app è in background.
+        var instance: java.lang.ref.WeakReference<MainActivity>? = null
     }
 
     @SuppressLint("SetJavaScriptEnabled")
