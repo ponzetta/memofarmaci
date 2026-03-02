@@ -1,16 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 
 function initFirebaseAdmin(): string | null {
-  if (admin.apps.length) return null;
+  if (getApps().length) return null;
   const key = process.env.FIREBASE_ADMIN_KEY;
   if (!key) return 'FIREBASE_ADMIN_KEY mancante';
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(key)),
-    });
+    initializeApp({ credential: cert(JSON.parse(key)) });
     return null;
   } catch (e) {
     return `Firebase Admin init fallita: ${e instanceof Error ? e.message : String(e)}`;
@@ -126,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (sub.fcm_token) {
           // ── FCM nativo (Android / iOS) ───────────────────────────────────
           try {
-            await admin.messaging().send({
+            await getMessaging().send({
               token: sub.fcm_token,
               notification: { title: '💊 È ora di prendere la medicina!', body },
               data: { planId: plan.id },
