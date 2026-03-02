@@ -13,7 +13,9 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.MediaStore
+import android.provider.Settings
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -158,6 +160,10 @@ class MainActivity : AppCompatActivity() {
 
         // Crea il canale notifiche usato sia dall'app sia dal cron FCM
         createNotificationChannel()
+
+        // Chiedi di escludere l'app dalla battery optimization:
+        // impedisce ad Android di uccidere FCM e i servizi in background
+        requestIgnoreBatteryOptimization()
     }
 
     private fun createNotificationChannel() {
@@ -174,6 +180,22 @@ class MainActivity : AppCompatActivity() {
                 enableLights(true)
             }
             manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun requestIgnoreBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    // Alcuni ROM non supportano questa intent diretta
+                }
+            }
         }
     }
 
@@ -285,11 +307,12 @@ class MainActivity : AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val triggerAt = System.currentTimeMillis() + delayMs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-        }
+        // setAlarmClock è garantito da Android anche in Doze mode, come le sveglie di sistema.
+        // Appare nella status bar come prossima sveglia e non può essere posticipato.
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(triggerAt, pendingIntent),
+            pendingIntent
+        )
     }
 
     /** React chiama questo al mount per controllare se c'è un allarme pendente */
