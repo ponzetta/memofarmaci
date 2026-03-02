@@ -50,7 +50,7 @@ export default function SettingsPage({ onClose }: SettingsPageProps) {
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
-      <header className="bg-[#0D9488] text-white p-6 rounded-b-3xl shadow-lg flex items-center gap-4">
+      <header className="bg-[#0D9488] text-white px-6 pb-6 rounded-b-3xl shadow-lg flex items-center gap-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
         <button onClick={onClose} className="text-white text-2xl leading-none">&larr;</button>
         <h1 className="text-xl font-bold">Impostazioni</h1>
       </header>

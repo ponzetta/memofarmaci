@@ -50,7 +50,7 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
-      <header className="bg-[#0D9488] text-white p-6 rounded-b-3xl shadow-lg">
+      <header className="bg-[#0D9488] text-white px-6 pb-6 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
         <h1 className="text-3xl font-serif text-center">Completa il profilo</h1>
         <p className="text-center text-sm opacity-80 mt-1">Necessario per usare l'app</p>
       </header>

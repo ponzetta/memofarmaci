@@ -32,7 +32,7 @@ export default function SideEffects({ medications, sideEffects, onAddSideEffect,
 
   return (
     <div className="w-full h-full bg-white flex flex-col">
-      <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+      <header className="bg-[#0D9488] text-white px-6 pb-4 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}>
         <h1 className="text-xl font-bold">Effetti Collaterali</h1>
       </header>
 

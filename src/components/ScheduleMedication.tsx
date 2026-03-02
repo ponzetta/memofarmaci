@@ -57,7 +57,7 @@ export default function ScheduleMedication({ medications, onSavePlan, onClose, e
 
   return (
     <div className="w-full h-full bg-white flex flex-col">
-      <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+      <header className="bg-[#0D9488] text-white px-6 pb-4 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}>
         <h1 className="text-xl font-bold">{existingPlan ? 'Modifica Piano' : 'Pianifica Farmaco'}</h1>
       </header>
       {error && <div className="mx-6 mt-3 mb-2 bg-red-50 text-red-700 p-3 rounded-xl text-sm">{error}</div>}

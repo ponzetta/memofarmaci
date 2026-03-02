@@ -357,7 +357,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col font-sans shadow-2xl">
       <OfflineBanner />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
       {showExitConfirm && (
@@ -399,7 +399,7 @@ export default function App() {
       )}
 
       {currentView === 'home' && (
-        <header className="bg-[#0D9488] text-white px-6 pt-5 pb-4 rounded-b-3xl shadow-lg">
+        <header className="bg-[#0D9488] text-white px-6 pb-4 rounded-b-3xl shadow-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}>
           <h1 className="text-xl font-bold">MemoFarmaci</h1>
           <p className="text-sm opacity-80 mt-0.5 capitalize">
             {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
