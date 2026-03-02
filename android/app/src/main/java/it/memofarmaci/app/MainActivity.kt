@@ -2,13 +2,17 @@ package it.memofarmaci.app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -16,7 +20,9 @@ import android.webkit.WebViewClient
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
+import java.io.File
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -33,6 +39,23 @@ class MainActivity : AppCompatActivity() {
     private var currentFcmToken: String? = null
     // planId da consegnare alla WebView (tap su notifica FCM)
     private var pendingAlarmPlanId: String? = null
+
+    // File chooser per <input type="file"> nella WebView
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var cameraImageUri: Uri? = null
+    private val fileChooserLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val callback = filePathCallback
+            filePathCallback = null
+            when {
+                result.resultCode == Activity.RESULT_OK && result.data?.data != null ->
+                    callback?.onReceiveValue(arrayOf(result.data!!.data!!))
+                result.resultCode == Activity.RESULT_OK && cameraImageUri != null ->
+                    callback?.onReceiveValue(arrayOf(cameraImageUri!!))
+                else -> callback?.onReceiveValue(null)
+            }
+            cameraImageUri = null
+        }
 
     // Launcher per richiedere POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher =
@@ -92,7 +115,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        webView.webChromeClient = WebChromeClient()
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView,
+                filePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: FileChooserParams
+            ): Boolean {
+                // Annulla eventuale callback precedente rimasta in sospeso
+                this@MainActivity.filePathCallback?.onReceiveValue(null)
+                this@MainActivity.filePathCallback = filePathCallback
+
+                // File temporaneo per la fotocamera
+                val photoFile = File.createTempFile("photo_", ".jpg", cacheDir)
+                cameraImageUri = FileProvider.getUriForFile(
+                    this@MainActivity,
+                    "${packageName}.fileprovider",
+                    photoFile
+                )
+                val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                    putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri)
+                }
+                val galleryIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
+                val chooser = Intent.createChooser(galleryIntent, "Seleziona foto")
+                chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
+                fileChooserLauncher.launch(chooser)
+                return true
+            }
+        }
 
         // Carica l'app React da Vercel
         webView.loadUrl("https://memofarmaci-wm25.vercel.app")

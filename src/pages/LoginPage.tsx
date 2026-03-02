@@ -6,14 +6,14 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-white flex flex-col items-center justify-center p-8 gap-8">
       <div className="text-center">
-        <h1 className="text-4xl font-serif text-[#0D9488] mb-2">MemoFarmaci</h1>
-        <p className="text-lg text-slate-500">Il tuo promemoria farmaci personale</p>
+        <h1 className="text-2xl font-bold text-[#0D9488] mb-2">MemoFarmaci</h1>
+        <p className="text-sm text-slate-500">Il tuo promemoria farmaci personale</p>
       </div>
 
       <div className="w-full flex flex-col gap-4">
         <button
           onClick={signInWithGoogle}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 text-slate-700 text-lg font-medium py-4 rounded-2xl shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 text-slate-700 text-sm font-medium py-3 rounded-2xl shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
         >
           <GoogleIcon />
           Continua con Google
@@ -21,7 +21,7 @@ export default function LoginPage() {
 
         <button
           onClick={signInWithFacebook}
-          className="w-full flex items-center justify-center gap-3 bg-[#1877F2] text-white text-lg font-medium py-4 rounded-2xl shadow-sm hover:bg-[#166fe5] transition-all"
+          className="w-full flex items-center justify-center gap-3 bg-[#1877F2] text-white text-sm font-medium py-3 rounded-2xl shadow-sm hover:bg-[#166fe5] transition-all"
         >
           <FacebookIcon />
           Continua con Facebook
