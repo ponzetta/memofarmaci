@@ -10,7 +10,7 @@ import { usePushNotifications } from './hooks/usePushNotifications';
 import Toast from './components/Toast';
 import OfflineBanner from './components/OfflineBanner';
 import type { MedicationPlan, TodaysScheduleItem, Medication } from './types';
-import { Bell, Home, FileHeart, CalendarPlus, CalendarClock, Pill, Settings } from 'lucide-react';
+import { Bell, Clock, Home, FileHeart, CalendarPlus, CalendarClock, Pill, Settings } from 'lucide-react';
 import AddMedication from './components/AddMedication';
 import ScheduleMedication from './components/ScheduleMedication';
 import PlanManager from './components/PlanManager';
@@ -471,6 +471,29 @@ export default function App() {
         <div className="space-y-4">
           {todaysEvents.map(item => {
             if (item.type === 'medication' && !item.taken) {
+              const boxPhoto = medications.find(m => m.id === item.medicationId)?.boxPhoto;
+
+              // Card in snooze: orario rimandato
+              const snoozeUntil = snoozeMap[item.planId];
+              const isSnoozed = snoozeUntil && Date.now() < snoozeUntil;
+              if (isSnoozed) {
+                const sd = new Date(snoozeUntil);
+                const snoozeTimeStr = `${sd.getHours().toString().padStart(2, '0')}:${sd.getMinutes().toString().padStart(2, '0')}`;
+                return (
+                  <div key={item.id} className="p-5 rounded-2xl shadow-sm flex items-center gap-4 bg-slate-100 border border-slate-200">
+                    {boxPhoto && <img src={boxPhoto} alt="Scatola" className="w-14 h-14 object-cover rounded-lg opacity-50" />}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 text-slate-400 text-xs mb-0.5">
+                        <Clock size={12} />
+                        <span>Rimandato · orario orig. {item.time}</span>
+                      </div>
+                      <p className="text-base font-bold text-slate-600">Suonerà alle {snoozeTimeStr}</p>
+                      <p className="text-sm text-slate-500">{getMedicationName(item.medicationId)}</p>
+                    </div>
+                  </div>
+                );
+              }
+
               const now = new Date();
               const [h, m] = item.time.split(':').map(Number);
               const itemDate = new Date(); itemDate.setHours(h, m, 0, 0);
@@ -484,7 +507,6 @@ export default function App() {
               else if (isPastDue) { btnClass += ' bg-green-600 hover:bg-green-700'; }
               else { btnClass += ' bg-gray-400 cursor-not-allowed'; disabled = true; }
 
-              const boxPhoto = medications.find(m => m.id === item.medicationId)?.boxPhoto;
               return (
                 <div key={item.id} className="p-6 rounded-2xl shadow-md flex flex-col gap-4 transition-all bg-amber-50">
                   <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewingScheduleId(item.id)}>
