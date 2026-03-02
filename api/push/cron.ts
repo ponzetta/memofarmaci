@@ -3,11 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import * as admin from 'firebase-admin';
 
-// Inizializza Firebase Admin una sola volta
-if (!admin.apps.length && process.env.FIREBASE_ADMIN_KEY) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
-  });
+function initFirebaseAdmin(): string | null {
+  if (admin.apps.length) return null;
+  const key = process.env.FIREBASE_ADMIN_KEY;
+  if (!key) return 'FIREBASE_ADMIN_KEY mancante';
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(key)),
+    });
+    return null;
+  } catch (e) {
+    return `Firebase Admin init fallita: ${e instanceof Error ? e.message : String(e)}`;
+  }
 }
 
 function getSupabaseAdmin() {
@@ -36,6 +43,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .filter(k => !process.env[k]);
   if (missing.length > 0) {
     return res.status(500).json({ error: 'Variabili mancanti', missing });
+  }
+
+  const firebaseError = initFirebaseAdmin();
+  if (firebaseError) {
+    return res.status(500).json({ error: firebaseError });
   }
 
   webpush.setVapidDetails(
