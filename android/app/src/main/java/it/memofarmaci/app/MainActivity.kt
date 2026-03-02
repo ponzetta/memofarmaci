@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.provider.Settings
+import android.view.WindowManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -80,6 +81,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         instance = java.lang.ref.WeakReference(this)
+
+        // Se l'app è stata aperta da una notifica allarme (schermo spento),
+        // accendi lo schermo e mostra sopra la lock screen.
+        intent.getStringExtra("planId")?.takeIf { it.isNotEmpty() }?.let {
+            turnScreenOn()
+        }
+
         supportActionBar?.hide()
 
         // Display edge-to-edge (status bar e navigation bar trasparenti)
@@ -189,6 +197,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun turnScreenOn() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
+    }
+
     private fun requestIgnoreBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -277,12 +298,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        webView.onResume()
+        webView.resumeTimers()
+        // Consegna planId salvato dal service FCM o da SnoozeReceiver.
+        // Fallback affidabile per screen-off: anche se fullScreenIntent non porta
+        // l'app in foreground, quando l'utente apre manualmente l'app questo viene eseguito.
+        val prefs = getSharedPreferences("mf_prefs", MODE_PRIVATE)
+        val planId = prefs.getString("pending_plan_id", null)
+        if (!planId.isNullOrEmpty()) {
+            prefs.edit().remove("pending_plan_id").apply()
+            // Breve delay per garantire che il JS della WebView sia pronto
+            webView.postDelayed({ deliverAlarmPlanId(planId) }, 300L)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        webView.onPause()
+        webView.pauseTimers()
+    }
+
     /** App in background: tap su notifica FCM → onNewIntent */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         val planId = intent.getStringExtra("planId") ?: return
         if (planId.isEmpty()) return
+        // Accendi lo schermo anche se arrivato in background
+        turnScreenOn()
+        // Risveglia la WebView prima di consegnare (potrebbe essere in pausa)
+        webView.onResume()
+        webView.resumeTimers()
         // WebView già caricata → consegna subito
         deliverAlarmPlanId(planId)
     }
@@ -304,7 +352,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Schedula un allarme nativo via AlarmManager che scatta dopo delayMs millisecondi.
+     * Schedula l'allarme per un farmaco specifico al momento esatto (delayMs da adesso).
+     * Chiamato da React quando todaysSchedule si carica. setAlarmClock è garantito anche
+     * in Doze mode e Samsung Deep Sleep — è il meccanismo delle sveglie di sistema.
+     * requestCode = planId.hashCode() + 500 per non collidere con gli allarmi snooze.
+     */
+    fun scheduleNextAlarm(planId: String, delayMs: Long) {
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, SnoozeReceiver::class.java).apply {
+            putExtra("planId", planId)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            planId.hashCode() + 500,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val triggerAt = System.currentTimeMillis() + delayMs
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(triggerAt, pendingIntent),
+            pendingIntent
+        )
+    }
+
+    /**
+     * Cancella l'allarme locale per un farmaco (chiamato quando l'utente conferma l'assunzione).
+     */
+    fun cancelMedicationAlarm(planId: String) {
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, SnoozeReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            planId.hashCode() + 500,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        ) ?: return
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
+    }
+
+    /**
+     * Schedula un allarme snooze via AlarmManager che scatta dopo delayMs millisecondi.
      * Chiamato da WebAppInterface.scheduleSnoozeAlarm() tramite il bridge JS.
      */
     fun scheduleSnoozeAlarm(planId: String, delayMs: Long) {
@@ -319,8 +407,6 @@ class MainActivity : AppCompatActivity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val triggerAt = System.currentTimeMillis() + delayMs
-        // setAlarmClock è garantito da Android anche in Doze mode, come le sveglie di sistema.
-        // Appare nella status bar come prossima sveglia e non può essere posticipato.
         alarmManager.setAlarmClock(
             AlarmManager.AlarmClockInfo(triggerAt, pendingIntent),
             pendingIntent

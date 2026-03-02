@@ -275,6 +275,26 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
 
+  // Schedula allarmi locali via AlarmManager per tutti i farmaci futuri del giorno.
+  // setAlarmClock è garantito anche con schermo spento (= sveglia di sistema).
+  // Si ri-esegue ad ogni cambio di todaysSchedule (idempotente: sovrascrive l'allarme esistente).
+  useEffect(() => {
+    if (todaysSchedule.length === 0) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bridge = (window as any).AndroidBridge;
+    if (!bridge?.scheduleNextAlarm) return;
+    const now = Date.now();
+    todaysSchedule
+      .filter(item => !item.taken)
+      .forEach(item => {
+        const [h, m] = item.time.split(':').map(Number);
+        const due = new Date();
+        due.setHours(h, m, 0, 0);
+        const delayMs = due.getTime() - now;
+        if (delayMs > 0) bridge.scheduleNextAlarm(item.planId, delayMs);
+      });
+  }, [todaysSchedule]);
+
   // Check periodico ogni 10s: finestra 2 ore invece di match esatto al minuto
   useEffect(() => {
     const interval = setInterval(() => {
@@ -331,6 +351,8 @@ export default function App() {
     const item = todaysSchedule.find(i => i.id === scheduleItemId);
     if (item && !item.taken) {
       await logIntake(item.planId, item.medicationId, todayStr, item.time);
+      // Cancella l'allarme locale Android (ora non serve più)
+      try { (window as any).AndroidBridge?.cancelMedicationAlarm?.(item.planId); } catch { /* noop */ }
       setToastMessage('Assunzione del farmaco registrata, Grazie');
     }
   };
@@ -346,10 +368,11 @@ export default function App() {
     localStorage.setItem('mf_snooze', JSON.stringify(updated));
     // Chiude il modal subito, indipendentemente dal bridge Android
     setAlarmingScheduleId(null);
-    // Android nativo: AlarmManager sveglia l'app allo scadere dello snooze
     try {
-      const bridge = (window as unknown as { AndroidBridge?: { scheduleSnoozeAlarm?: (planId: string, delayMs: number) => void } }).AndroidBridge;
-      bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bridge = (window as any).AndroidBridge;
+      bridge?.stopAlarmSound?.();           // ferma la suoneria nativa
+      bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000); // schedula snooze
     } catch { /* bridge non disponibile (browser/iOS) */ }
   };
 
@@ -432,7 +455,11 @@ export default function App() {
         <AlarmModal
           scheduleItem={alarmingSchedule}
           medication={alarmingMedication}
-          onConfirm={() => { handleToggleTaken(alarmingSchedule.id); setAlarmingScheduleId(null); }}
+          onConfirm={() => {
+            try { (window as any).AndroidBridge?.stopAlarmSound?.(); } catch { /* noop */ }
+            handleToggleTaken(alarmingSchedule.id);
+            setAlarmingScheduleId(null);
+          }}
           onSnooze={(minutes) => handleSnooze(alarmingSchedule.planId, minutes)}
         />
       )}
