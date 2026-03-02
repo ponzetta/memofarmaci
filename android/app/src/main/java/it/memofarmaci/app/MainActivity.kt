@@ -39,6 +39,12 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        // Riferimento debole all'istanza attiva: usato dal FCM service per
+        // consegnare il planId direttamente alla WebView quando l'app è in background.
+        var instance: java.lang.ref.WeakReference<MainActivity>? = null
+    }
+
     private lateinit var webView: WebView
     private var currentFcmToken: String? = null
     // planId da consegnare alla WebView (tap su notifica FCM)
@@ -75,6 +81,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        instance = java.lang.ref.WeakReference(this)
         supportActionBar?.hide()
 
         // Display edge-to-edge (status bar e navigation bar trasparenti)
@@ -281,7 +288,13 @@ class MainActivity : AppCompatActivity() {
         deliverAlarmPlanId(planId)
     }
 
-    private fun deliverAlarmPlanId(planId: String) {
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
+    }
+
+    // internal: accessibile da MemoFarmaciFirebaseService nello stesso package
+    internal fun deliverAlarmPlanId(planId: String) {
         val escaped = planId.replace("'", "\\'")
         webView.post {
             webView.evaluateJavascript(

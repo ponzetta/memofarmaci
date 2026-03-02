@@ -29,6 +29,12 @@ class MemoFarmaciFirebaseService : FirebaseMessagingService() {
 
         val planId = remoteMessage.data["planId"] ?: ""
         showNotification(title, body, planId)
+
+        // Se MainActivity è viva in background, consegna il planId direttamente
+        // alla WebView senza richiedere il tap sulla notifica.
+        if (planId.isNotEmpty()) {
+            MainActivity.instance?.get()?.deliverAlarmPlanId(planId)
+        }
     }
 
     private fun showNotification(title: String, body: String, planId: String) {
