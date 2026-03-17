@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy – MemoFarmaci</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1e293b;
+      background: #f8fafc;
+      padding: 0;
+    }
+    .header {
+      background: #0d9488;
+      color: #fff;
+      padding: 2rem 1.5rem 1.5rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }
+    .header p  { font-size: .9rem; opacity: .85; }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0d9488;
+      margin-top: 2rem;
+      margin-bottom: .6rem;
+      padding-bottom: .3rem;
+      border-bottom: 2px solid #ccfbf1;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #374151;
+      margin-top: 1.2rem;
+      margin-bottom: .4rem;
+    }
+    p  { margin-bottom: .8rem; }
+    ul { margin: .4rem 0 .8rem 1.4rem; }
+    li { margin-bottom: .3rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: .8rem 0 1.2rem;
+      font-size: .9rem;
+    }
+    th {
+      background: #f0fdfa;
+      color: #0f766e;
+      text-align: left;
+      padding: .6rem .8rem;
+      border: 1px solid #ccfbf1;
+      font-weight: 600;
+    }
+    td {
+      padding: .5rem .8rem;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .box {
+      background: #f0fdfa;
+      border-left: 4px solid #0d9488;
+      border-radius: .5rem;
+      padding: .9rem 1rem;
+      margin: 1rem 0;
+      font-size: .95rem;
+    }
+    .updated {
+      font-size: .85rem;
+      color: #64748b;
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    a { color: #0d9488; }
+    @media (max-width: 600px) {
+      table { font-size: .8rem; }
+      td, th { padding: .4rem .5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Privacy Policy</h1>
+  <p>MemoFarmaci – Informativa sul trattamento dei dati personali</p>
+</div>
+
+<div class="container">
+
+  <div class="box">
+    La presente informativa è redatta in conformità al <strong>Regolamento UE 2016/679 (GDPR)</strong>
+    e al D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018. Descrive come MemoFarmaci
+    raccoglie, utilizza e protegge i dati personali degli utenti.
+  </div>
+
+  <!-- 1. Titolare -->
+  <h2>1. Titolare del trattamento</h2>
+  <p>
+    Il Titolare del trattamento dei dati personali è:
+  </p>
+  <ul>
+    <li><strong>Denominazione:</strong> [Inserire nome / ragione sociale]</li>
+    <li><strong>Sede:</strong> [Inserire indirizzo]</li>
+    <li><strong>E-mail:</strong> <a href="mailto:privacy@memofarmaci.it">privacy@memofarmaci.it</a></li>
+  </ul>
+  <p>
+    Per qualsiasi domanda relativa al trattamento dei dati personali è possibile contattare
+    il Titolare all'indirizzo e-mail sopra indicato.
+  </p>
+
+  <!-- 2. Dati raccolti -->
+  <h2>2. Tipologie di dati trattati</h2>
+
+  <h3>2.1 Dati di registrazione e autenticazione</h3>
+  <ul>
+    <li>Nome, cognome, indirizzo e-mail forniti tramite accesso Google o Facebook (OAuth 2.0)</li>
+    <li>Identificativo utente univoco (UUID) assegnato dal sistema</li>
+    <li>Data e ora di registrazione</li>
+  </ul>
+
+  <h3>2.2 Dati del profilo utente</h3>
+  <ul>
+    <li>Nome, cognome, data di nascita, codice postale, numero di telefono (facoltativi)</li>
+    <li>Dati del caregiver: nome, telefono, e-mail (facoltativi, inseriti volontariamente)</li>
+    <li>Preferenze di notifica (canali attivi, soglia ore per avvisi mancata assunzione)</li>
+  </ul>
+
+  <h3>2.3 Dati sanitari</h3>
+  <p>
+    <strong>Attenzione:</strong> i seguenti dati rientrano nelle categorie particolari
+    di dati ai sensi dell'art. 9 GDPR e sono trattati solo con il consenso esplicito dell'utente:
+  </p>
+  <ul>
+    <li>Nomi dei farmaci assunti, dosaggi, orari e frequenza della terapia</li>
+    <li>Log di assunzione (data, ora, stato)</li>
+    <li>Effetti collaterali registrati (descrizione, data, farmaco correlato)</li>
+    <li>Appuntamenti medici (medico, luogo, data/ora)</li>
+    <li>Fotografie della scatola e della pillola del farmaco</li>
+  </ul>
+
+  <h3>2.4 Dati tecnici e di utilizzo</h3>
+  <ul>
+    <li>Token FCM (Firebase Cloud Messaging) per le notifiche push</li>
+    <li>Subscription Web Push (endpoint, chiavi di cifratura)</li>
+    <li>Chat ID Telegram (solo se l'utente collega volontariamente il bot)</li>
+    <li>Dati di log del server (indirizzo IP, timestamp, tipo di dispositivo) raccolti da Vercel</li>
+  </ul>
+
+  <!-- 3. Finalità -->
+  <h2>3. Finalità e basi giuridiche del trattamento</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Finalità</th>
+        <th>Base giuridica (art. 6 / art. 9 GDPR)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Autenticazione e gestione dell'account</td>
+        <td>Esecuzione del contratto (art. 6 § 1 b)</td>
+      </tr>
+      <tr>
+        <td>Erogazione del servizio (piani, allarmi, log)</td>
+        <td>Esecuzione del contratto (art. 6 § 1 b)</td>
+      </tr>
+      <tr>
+        <td>Trattamento dati sanitari (farmaci, effetti collaterali)</td>
+        <td>Consenso esplicito dell'interessato (art. 9 § 2 a)</td>
+      </tr>
+      <tr>
+        <td>Invio notifiche push e allarmi farmaci</td>
+        <td>Consenso (art. 6 § 1 a) – revocabile in qualsiasi momento</td>
+      </tr>
+      <tr>
+        <td>Avvisi mancata assunzione via e-mail / Telegram al caregiver</td>
+        <td>Consenso (art. 6 § 1 a) – attivato esplicitamente nelle impostazioni</td>
+      </tr>
+      <tr>
+        <td>Sicurezza del servizio e prevenzione frodi</td>
+        <td>Legittimo interesse (art. 6 § 1 f)</td>
+      </tr>
+      <tr>
+        <td>Adempimenti di legge</td>
+        <td>Obbligo legale (art. 6 § 1 c)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 4. Modalità -->
+  <h2>4. Modalità di trattamento</h2>
+  <p>
+    I dati sono trattati con strumenti informatici e telematici, con logiche strettamente
+    correlate alle finalità indicate. Il trattamento è effettuato in modo da garantire
+    sicurezza e riservatezza tramite:
+  </p>
+  <ul>
+    <li>Cifratura in transito (TLS 1.2+) e a riposo (AES-256)</li>
+    <li>Accesso ai dati limitato al solo account dell'utente tramite Row Level Security (RLS)</li>
+    <li>Autenticazione sicura tramite provider OAuth (Google, Facebook)</li>
+    <li>URL firmati con scadenza 1 ora per le fotografie dei farmaci</li>
+  </ul>
+
+  <!-- 5. Conservazione -->
+  <h2>5. Periodo di conservazione</h2>
+  <table>
+    <thead>
+      <tr><th>Tipologia di dato</th><th>Periodo di conservazione</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Dati dell'account (profilo, credenziali OAuth)</td><td>Fino alla cancellazione dell'account</td></tr>
+      <tr><td>Piani terapeutici e log assunzione</td><td>Fino alla cancellazione dell'account</td></tr>
+      <tr><td>Fotografie farmaci (Supabase Storage)</td><td>Fino alla cancellazione del farmaco o dell'account</td></tr>
+      <tr><td>Log di accesso server (Vercel)</td><td>30 giorni (policy Vercel)</td></tr>
+      <tr><td>Token FCM / Web Push</td><td>Fino alla revoca del consenso o disinstallazione</td></tr>
+      <tr><td>Chat ID Telegram</td><td>Fino alla disconnessione del bot o cancellazione account</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Alla cancellazione dell'account, tutti i dati personali vengono eliminati entro
+    <strong>30 giorni</strong>, salvo obblighi di conservazione previsti dalla legge.
+  </p>
+
+  <!-- 6. Destinatari -->
+  <h2>6. Destinatari e responsabili del trattamento</h2>
+  <p>
+    I dati possono essere comunicati ai seguenti soggetti terzi, nominati responsabili
+    del trattamento ai sensi dell'art. 28 GDPR:
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Fornitore</th>
+        <th>Servizio</th>
+        <th>Sede</th>
+        <th>Garanzia GDPR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Supabase Inc.</strong></td>
+        <td>Database, autenticazione, storage foto</td>
+        <td>USA</td>
+        <td>Standard Contractual Clauses (SCC)</td>
+      </tr>
+      <tr>
+        <td><strong>Vercel Inc.</strong></td>
+        <td>Hosting applicazione e API serverless</td>
+        <td>USA</td>
+        <td>Standard Contractual Clauses (SCC)</td>
+      </tr>
+      <tr>
+        <td><strong>Google LLC</strong></td>
+        <td>Autenticazione OAuth, Firebase Cloud Messaging</td>
+        <td>USA</td>
+        <td>Standard Contractual Clauses (SCC)</td>
+      </tr>
+      <tr>
+        <td><strong>Meta Platforms Ireland</strong></td>
+        <td>Autenticazione OAuth Facebook</td>
+        <td>UE (Irlanda)</td>
+        <td>Soggetto GDPR</td>
+      </tr>
+      <tr>
+        <td><strong>Resend Inc.</strong></td>
+        <td>Invio e-mail notifiche mancata assunzione</td>
+        <td>USA</td>
+        <td>Standard Contractual Clauses (SCC)</td>
+      </tr>
+      <tr>
+        <td><strong>Telegram FZ-LLC</strong></td>
+        <td>Bot notifiche Telegram (solo se attivato)</td>
+        <td>Dubai, UAE</td>
+        <td>Privacy Policy Telegram; dati minimi (solo chat ID)</td>
+      </tr>
+      <tr>
+        <td><strong>cron-job.org</strong></td>
+        <td>Schedulazione job periodici per gli avvisi</td>
+        <td>Germania (UE)</td>
+        <td>Soggetto GDPR</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    I dati non vengono venduti né comunicati a soggetti terzi per finalità di marketing.
+  </p>
+
+  <!-- 7. Trasferimenti -->
+  <h2>7. Trasferimento dei dati fuori dall'Unione Europea</h2>
+  <p>
+    Alcuni fornitori (Supabase, Vercel, Google, Resend) hanno sede negli Stati Uniti.
+    Il trasferimento dei dati verso questi paesi è garantito dall'adozione delle
+    <strong>Clausole Contrattuali Standard (SCC)</strong> approvate dalla Commissione Europea
+    ai sensi dell'art. 46 GDPR, che assicurano un livello di protezione equivalente a quello europeo.
+  </p>
+
+  <!-- 8. Diritti -->
+  <h2>8. Diritti dell'interessato</h2>
+  <p>
+    In qualità di interessato, hai il diritto di:
+  </p>
+  <ul>
+    <li><strong>Accesso (art. 15)</strong> – ottenere conferma del trattamento e copia dei dati</li>
+    <li><strong>Rettifica (art. 16)</strong> – correggere dati inesatti o integrarli</li>
+    <li><strong>Cancellazione (art. 17)</strong> – chiedere la cancellazione dei tuoi dati ("diritto all'oblio")</li>
+    <li><strong>Limitazione (art. 18)</strong> – limitare il trattamento in determinate circostanze</li>
+    <li><strong>Portabilità (art. 20)</strong> – ricevere i dati in formato strutturato e leggibile da macchina</li>
+    <li><strong>Opposizione (art. 21)</strong> – opporti al trattamento basato su legittimo interesse</li>
+    <li><strong>Revoca del consenso</strong> – revocare in qualsiasi momento il consenso prestato, senza pregiudicare la liceità del trattamento precedente</li>
+    <li><strong>Reclamo all'Autorità di controllo</strong> – presentare reclamo al Garante per la Protezione dei Dati Personali (<a href="https://www.garanteprivacy.it" target="_blank">www.garanteprivacy.it</a>)</li>
+  </ul>
+  <p>
+    Per esercitare i tuoi diritti, scrivi a:
+    <a href="mailto:privacy@memofarmaci.it">privacy@memofarmaci.it</a>.
+    Risponderemo entro <strong>30 giorni</strong> dalla ricezione della richiesta.
+  </p>
+
+  <!-- 9. Cookie -->
+  <h2>9. Cookie e tecnologie di tracciamento</h2>
+  <p>
+    MemoFarmaci utilizza esclusivamente:
+  </p>
+  <ul>
+    <li><strong>Cookie tecnici di sessione</strong> – necessari per il mantenimento dell'autenticazione (non richiedono consenso)</li>
+    <li><strong>localStorage</strong> – memorizzazione locale delle preferenze di snooze degli allarmi</li>
+  </ul>
+  <p>
+    Non vengono utilizzati cookie di profilazione, cookie di terze parti a scopo pubblicitario
+    né strumenti di analytics comportamentale.
+  </p>
+
+  <!-- 10. Minori -->
+  <h2>10. Minori</h2>
+  <p>
+    Il servizio è destinato a utenti maggiorenni (18+). Non raccogliamo consapevolmente
+    dati di minori di 16 anni. Se sei un genitore o tutore e ritieni che tuo figlio
+    abbia fornito dati personali, contattaci a
+    <a href="mailto:privacy@memofarmaci.it">privacy@memofarmaci.it</a>
+    per richiederne la cancellazione.
+  </p>
+
+  <!-- 11. Aggiornamenti -->
+  <h2>11. Modifiche alla presente informativa</h2>
+  <p>
+    Il Titolare si riserva il diritto di modificare la presente informativa in qualsiasi momento,
+    per adeguarla a variazioni normative o di servizio. Le modifiche saranno pubblicate su
+    questa pagina con aggiornamento della data in calce. In caso di modifiche sostanziali,
+    l'utente sarà informato tramite notifica in-app o e-mail.
+  </p>
+  <p>
+    L'uso continuato del servizio dopo la pubblicazione delle modifiche costituisce
+    accettazione delle stesse.
+  </p>
+
+  <p class="updated">
+    Ultimo aggiornamento: <strong>17 marzo 2026</strong><br>
+    Versione: 1.0
+  </p>
+
+</div>
+</body>
+</html>
