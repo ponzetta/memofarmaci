@@ -20,6 +20,10 @@ export interface UserProfile {
   telegramCaregiverChatId?: string;
   missedDoseAlertHours: number;
   profileCompleted: boolean;
+  // Consenso GDPR (obbligatorio al primo accesso)
+  privacyPolicyAcceptedAt?: string;   // ISO 8601 — null = mai accettata
+  healthDataConsentAt?: string;        // ISO 8601 — null = mai dato consenso art. 9
+  privacyPolicyVersion?: string;       // Es. "1.0"
 }
 
 export interface Medication {

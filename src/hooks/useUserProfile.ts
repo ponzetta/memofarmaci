@@ -23,6 +23,9 @@ function mapRow(row: Record<string, unknown>): UserProfile {
     telegramCaregiverChatId: row.telegram_caregiver_chat_id as string | undefined,
     missedDoseAlertHours: row.missed_dose_alert_hours as number,
     profileCompleted: row.profile_completed as boolean,
+    privacyPolicyAcceptedAt: row.privacy_policy_accepted_at as string | undefined,
+    healthDataConsentAt: row.health_data_consent_at as string | undefined,
+    privacyPolicyVersion: row.privacy_policy_version as string | undefined,
   };
 }
 
@@ -43,6 +46,9 @@ function mapToDb(profile: Partial<UserProfile>): Record<string, unknown> {
   if (profile.alertTelegramCaregiverEnabled !== undefined) db.alert_telegram_caregiver_enabled = profile.alertTelegramCaregiverEnabled;
   if (profile.missedDoseAlertHours !== undefined) db.missed_dose_alert_hours = profile.missedDoseAlertHours;
   if (profile.profileCompleted !== undefined) db.profile_completed = profile.profileCompleted;
+  if (profile.privacyPolicyAcceptedAt !== undefined) db.privacy_policy_accepted_at = profile.privacyPolicyAcceptedAt;
+  if (profile.healthDataConsentAt !== undefined) db.health_data_consent_at = profile.healthDataConsentAt;
+  if (profile.privacyPolicyVersion !== undefined) db.privacy_policy_version = profile.privacyPolicyVersion;
   return db;
 }
 

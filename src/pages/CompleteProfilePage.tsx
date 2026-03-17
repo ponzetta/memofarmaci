@@ -17,6 +17,8 @@ export default function CompleteProfilePage() {
     caregiverEmail: '',
     missedDoseAlertHours: 2,
   });
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentHealth, setConsentHealth] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,9 +31,14 @@ export default function CompleteProfilePage() {
       setError('Nome e cognome sono obbligatori');
       return;
     }
+    if (!consentPrivacy || !consentHealth) {
+      setError('Devi accettare la Privacy Policy e il consenso al trattamento dei dati sanitari per continuare');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
+      const now = new Date().toISOString();
       await saveProfile({
         ...form,
         email: user?.email,
@@ -39,6 +46,9 @@ export default function CompleteProfilePage() {
         alertTelegramUserEnabled: false,
         alertTelegramCaregiverEnabled: false,
         profileCompleted: true,
+        privacyPolicyAcceptedAt: now,
+        healthDataConsentAt: now,
+        privacyPolicyVersion: '1.0',
       });
       setProfileCompleted(true);
     } catch (e: unknown) {
@@ -91,10 +101,50 @@ export default function CompleteProfilePage() {
           </div>
         </Section>
 
+        {/* Consensi GDPR obbligatori */}
+        <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 space-y-4">
+          <h3 className="text-base font-semibold text-slate-700">Privacy e consensi (obbligatori)</h3>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentPrivacy}
+              onChange={e => setConsentPrivacy(e.target.checked)}
+              className="mt-1 w-5 h-5 accent-[#0D9488] flex-shrink-0"
+            />
+            <span className="text-sm text-slate-600">
+              Ho letto e accetto la{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0D9488] font-semibold underline"
+              >
+                Privacy Policy
+              </a>
+              , incluso il trattamento dei miei dati personali per l'erogazione del servizio.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentHealth}
+              onChange={e => setConsentHealth(e.target.checked)}
+              className="mt-1 w-5 h-5 accent-[#0D9488] flex-shrink-0"
+            />
+            <span className="text-sm text-slate-600">
+              Acconsento esplicitamente al trattamento dei miei{' '}
+              <strong>dati sanitari</strong> (farmaci, dosaggi, log assunzione, effetti
+              collaterali) ai sensi dell'art. 9 §2a del Regolamento UE 2016/679 (GDPR).
+            </span>
+          </label>
+        </div>
+
         <button
           type="submit"
-          disabled={saving}
-          className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 transition-all"
+          disabled={saving || !consentPrivacy || !consentHealth}
+          className="w-full bg-[#0D9488] text-white text-xl font-bold py-5 rounded-2xl shadow-lg hover:bg-opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
           {saving ? 'Salvataggio...' : 'Salva e inizia'}
         </button>
