@@ -1,21 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Medication, TodaysScheduleItem } from '../types';
-import { BellRing, Clock } from 'lucide-react';
+import { BellRing, Clock, CheckCircle2 } from 'lucide-react';
 
 interface AlarmModalProps {
-  scheduleItem: TodaysScheduleItem;
-  medication: Medication;
-  onConfirm: () => void;
+  scheduleItems: TodaysScheduleItem[];
+  medications: Medication[];
+  onConfirmOne: (scheduleItemId: string) => void;
+  onConfirmAll: () => void;
   onSnooze: (minutes: number) => void;
 }
 
-export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnooze }: AlarmModalProps) {
+export default function AlarmModal({ scheduleItems, medications, onConfirmOne, onConfirmAll, onSnooze }: AlarmModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
 
-  // I bottoni snooze si abilitano dopo l'orario pianificato
-  // Calcoliamo il ritardo rispetto a adesso: se già passato, enabled subito
+  const time = scheduleItems[0]?.time ?? '';
+
+  // I bottoni snooze si abilitano solo dopo l'orario pianificato
   const getSnoozeDelay = () => {
-    const [h, m] = scheduleItem.time.split(':').map(Number);
+    const [h, m] = time.split(':').map(Number);
     const due = new Date(); due.setHours(h, m, 0, 0);
     return Math.max(0, due.getTime() - Date.now());
   };
@@ -30,24 +33,22 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnoo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Audio (solo su browser/iOS; su Android il suono nativo è già in riproduzione)
   useEffect(() => {
-    // Su Android il suono nativo è già in riproduzione: non avviare l'audio HTML
     if ((window as any).AndroidBridge) return;
 
     const alarmStartTime = Date.now();
     let soundInterval: ReturnType<typeof setInterval>;
 
     const playSound = () => {
-      audioRef.current?.play().catch(e => console.error("Audio play failed: ", e));
+      audioRef.current?.play().catch(e => console.error('Audio play failed: ', e));
     };
-
     const stopSound = () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
     };
-
     const soundCycle = () => {
       if (Date.now() - alarmStartTime > 30 * 60 * 1000) {
         clearInterval(soundInterval);
@@ -60,33 +61,90 @@ export default function AlarmModal({ scheduleItem, medication, onConfirm, onSnoo
 
     soundCycle();
     soundInterval = setInterval(soundCycle, 60 * 1000);
-
     return () => {
       clearInterval(soundInterval);
       stopSound();
     };
   }, []);
 
+  const handleConfirm = (item: TodaysScheduleItem) => {
+    if (confirmedIds.has(item.id)) return;
+    const newConfirmed = new Set([...confirmedIds, item.id]);
+    setConfirmedIds(newConfirmed);
+    onConfirmOne(item.id);
+    if (newConfirmed.size === scheduleItems.length) {
+      // Breve ritardo per mostrare l'ultimo bottone come "Preso" prima della chiusura
+      setTimeout(() => onConfirmAll(), 400);
+    }
+  };
+
+  const isSingle = scheduleItems.length === 1;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full text-center max-h-[90vh] overflow-y-auto">
         <BellRing size={40} className="mx-auto text-amber-500 mb-2" />
-        <h2 className="text-lg font-bold text-slate-800 mb-1">È ora di prendere:</h2>
-        <p className="text-3xl font-bold text-[#0D9488] mb-3">{medication.name}</p>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">
+          {isSingle ? 'È ora di prendere:' : `${scheduleItems.length} farmaci da prendere`}
+        </h2>
+        <p className="text-base font-semibold text-slate-500 mb-4">Orario: {time}</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <img src={medication.boxPhoto || 'https://picsum.photos/seed/box/400/400'} alt="Scatola" className="w-full h-28 object-contain rounded-lg bg-gray-100 p-2" />
-          <img src={medication.pillPhoto || 'https://picsum.photos/seed/pill/400/400'} alt="Pillola" className="w-full h-28 object-contain rounded-lg bg-gray-100 p-2" />
+        <div className="space-y-4 mb-4">
+          {scheduleItems.map(item => {
+            const med = medications.find(m => m.id === item.medicationId);
+            const confirmed = confirmedIds.has(item.id);
+            return (
+              <div
+                key={item.id}
+                className={`p-4 rounded-2xl border-2 transition-all ${
+                  confirmed ? 'border-green-300 bg-green-50' : 'border-amber-200 bg-amber-50'
+                }`}
+              >
+                {isSingle ? (
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <img
+                      src={med?.boxPhoto || 'https://picsum.photos/seed/box/400/400'}
+                      alt="Scatola"
+                      className="w-full h-28 object-contain rounded-lg bg-gray-100 p-2"
+                    />
+                    <img
+                      src={med?.pillPhoto || 'https://picsum.photos/seed/pill/400/400'}
+                      alt="Pillola"
+                      className="w-full h-28 object-contain rounded-lg bg-gray-100 p-2"
+                    />
+                  </div>
+                ) : (
+                  med?.boxPhoto && (
+                    <img
+                      src={med.boxPhoto}
+                      alt="Scatola"
+                      className="w-16 h-16 object-contain rounded-lg bg-gray-100 p-2 mx-auto mb-2"
+                    />
+                  )
+                )}
+                <p className="text-xl font-bold text-[#0D9488] mb-1">{med?.name ?? 'Farmaco'}</p>
+                <p className="text-sm text-slate-500 mb-3">
+                  Dose: <span className="font-bold">{item.dosage}</span>
+                </p>
+                <button
+                  onClick={() => handleConfirm(item)}
+                  disabled={confirmed}
+                  className={`w-full py-3 rounded-xl font-bold text-white transition-all transform ${
+                    confirmed
+                      ? 'bg-green-400 cursor-default'
+                      : 'bg-green-600 hover:bg-green-700 active:scale-95'
+                  }`}
+                >
+                  {confirmed ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <CheckCircle2 size={18} /> Preso
+                    </span>
+                  ) : 'Ho preso'}
+                </button>
+              </div>
+            );
+          })}
         </div>
-
-        <p className="text-base text-slate-600 mb-4">Dose: <span className="font-bold">{scheduleItem.dosage}</span></p>
-
-        <button
-          onClick={onConfirm}
-          className="w-full bg-green-600 text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-green-700 transition-all transform active:scale-95 mb-3"
-        >
-          Ho preso la medicina
-        </button>
 
         {/* Bottoni snooze: abilitati solo dopo l'orario pianificato */}
         <div className="flex gap-2">

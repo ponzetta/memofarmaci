@@ -7,52 +7,64 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
 class SnoozeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val planId = intent.getStringExtra("planId") ?: return
 
-        // Suona subito con audio nativo (schermo spento incluso)
-        playAlarmSound(context, planId)
+        // WakeLock: mantiene la CPU attiva mentre il servizio audio registra la richiesta.
+        // Senza di esso il dispositivo può tornare in sleep prima che ringtone.play() sia
+        // effettivo, causando il mancato suono con schermo spento.
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MemoFarmaci:SnoozeReceiver")
+        wl.acquire(10_000L) // 10 secondi, rilasciato in finally
 
-        // Salva planId in SharedPreferences per delivery via onResume()
-        context.getSharedPreferences("mf_prefs", Context.MODE_PRIVATE)
-            .edit().putString("pending_plan_id", planId).apply()
+        try {
+            // Suona subito con audio nativo (schermo spento incluso)
+            playAlarmSound(context, planId)
 
-        // Intent che apre MainActivity con il planId
-        val activityIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("planId", planId)
+            // Salva planId in SharedPreferences per delivery via onResume()
+            context.getSharedPreferences("mf_prefs", Context.MODE_PRIVATE)
+                .edit().putString("pending_plan_id", planId).apply()
+
+            // Intent che apre MainActivity con il planId
+            val activityIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("planId", planId)
+            }
+            val contentPendingIntent = PendingIntent.getActivity(
+                context,
+                planId.hashCode(),
+                activityIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            // fullScreenIntent: porta l'app in foreground automaticamente come una sveglia
+            val fullScreenPendingIntent = PendingIntent.getActivity(
+                context,
+                planId.hashCode() + 100,
+                activityIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, "memofarmaci-alarms")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Promemoria farmaci")
+                .setContentText("È ora di prendere il farmaco")
+                .setContentIntent(contentPendingIntent)
+                .setFullScreenIntent(fullScreenPendingIntent, true)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .build()
+
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(planId.hashCode(), notification)
+        } finally {
+            wl.release()
         }
-        val contentPendingIntent = PendingIntent.getActivity(
-            context,
-            planId.hashCode(),
-            activityIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        // fullScreenIntent: porta l'app in foreground automaticamente come una sveglia
-        val fullScreenPendingIntent = PendingIntent.getActivity(
-            context,
-            planId.hashCode() + 100,
-            activityIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, "memofarmaci-alarms")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Promemoria farmaci")
-            .setContentText("È ora di prendere il farmaco")
-            .setContentIntent(contentPendingIntent)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
-
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(planId.hashCode(), notification)
     }
 
     private fun playAlarmSound(context: Context, planId: String) {

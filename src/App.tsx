@@ -97,7 +97,10 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  const [alarmingScheduleId, setAlarmingScheduleId] = useState<string | null>(null);
+  // alarmingItems: snapshot dei farmaci all'orario in allarme (tutti quelli al medesimo orario)
+  // alarmingPlanId: planId rappresentativo usato per gestire l'allarme Android (scheduling/cancel)
+  const [alarmingItems, setAlarmingItems] = useState<TodaysScheduleItem[]>([]);
+  const [alarmingPlanId, setAlarmingPlanId] = useState<string | null>(null);
   const [viewingScheduleId, setViewingScheduleId] = useState<string | null>(null);
 
   // Snooze: mappa planId → timestamp scadenza snooze, persistita in localStorage
@@ -107,8 +110,12 @@ export default function App() {
 
   // Aggiorna il callback FCM/nativo con i valori correnti
   onAlarmRef.current = (planId: string) => {
+    if (alarmingItems.length > 0) return;
     const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
-    if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+    if (!item) return;
+    const items = todaysSchedule.filter(s => s.time === item.time && !s.taken);
+    setAlarmingItems(items);
+    setAlarmingPlanId(planId);
   };
 
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -118,7 +125,7 @@ export default function App() {
   const vibrateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (alarmingScheduleId) {
+    if (alarmingItems.length > 0) {
       // Ferma il ringtone nativo (se stava suonando da background/SnoozeReceiver)
       // e prende il controllo del suono con Web Audio. Così c'è sempre un solo suono
       // sia in foreground (Web Audio diretto) sia in background (nativo → passaggio a Web Audio).
@@ -163,7 +170,7 @@ export default function App() {
       if (beepIntervalRef.current) clearInterval(beepIntervalRef.current);
       if (vibrateIntervalRef.current) clearInterval(vibrateIntervalRef.current);
     };
-  }, [alarmingScheduleId]);
+  }, [alarmingItems]);
 
   const todaysEvents = useMemo(() => {
     const medicationEvents = todaysSchedule.map(item => ({ ...item, type: 'medication' as const }));
@@ -188,13 +195,17 @@ export default function App() {
     if (!('serviceWorker' in navigator)) return;
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'ALARM_PUSH' && event.data.planId) {
+        if (alarmingItems.length > 0) return;
         const item = todaysSchedule.find(s => s.planId === event.data.planId && !s.taken);
-        if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+        if (!item) return;
+        const items = todaysSchedule.filter(s => s.time === item.time && !s.taken);
+        setAlarmingItems(items);
+        setAlarmingPlanId(event.data.planId);
       }
     };
     navigator.serviceWorker.addEventListener('message', handler);
     return () => navigator.serviceWorker.removeEventListener('message', handler);
-  }, [todaysSchedule, alarmingScheduleId]);
+  }, [todaysSchedule, alarmingItems]);
 
   // Legge ?alarm=planId dall'URL quando l'app viene aperta dal Service Worker (app era chiusa)
   useEffect(() => {
@@ -202,11 +213,13 @@ export default function App() {
     const planId = params.get('alarm');
     if (!planId || todaysSchedule.length === 0) return;
     const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
-    if (item && !alarmingScheduleId) {
-      setAlarmingScheduleId(item.id);
+    if (item && alarmingItems.length === 0) {
+      const items = todaysSchedule.filter(s => s.time === item.time && !s.taken);
+      setAlarmingItems(items);
+      setAlarmingPlanId(planId);
       window.history.replaceState({}, '', '/');
     }
-  // alarmingScheduleId escluso intenzionalmente: il check deve avvenire solo al primo load dei dati
+  // alarmingItems escluso intenzionalmente: il check deve avvenire solo al primo load dei dati
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
 
@@ -232,9 +245,12 @@ export default function App() {
   // Quando todaysSchedule è pronto (o pendingAlarmPlanId cambia), consuma il planId
   useEffect(() => {
     if (!pendingAlarmPlanId || todaysSchedule.length === 0) return;
+    if (alarmingItems.length > 0) return;
     const item = todaysSchedule.find(s => s.planId === pendingAlarmPlanId && !s.taken);
-    if (item && !alarmingScheduleId) {
-      setAlarmingScheduleId(item.id);
+    if (item) {
+      const items = todaysSchedule.filter(s => s.time === item.time && !s.taken);
+      setAlarmingItems(items);
+      setAlarmingPlanId(pendingAlarmPlanId);
       setPendingAlarmPlanId(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,16 +262,20 @@ export default function App() {
       try {
         const planId = new URL(url).searchParams.get('alarm');
         if (!planId || !todaysSchedule.length) return;
+        if (alarmingItems.length > 0) return;
         const item = todaysSchedule.find(s => s.planId === planId && !s.taken);
-        if (item && !alarmingScheduleId) setAlarmingScheduleId(item.id);
+        if (!item) return;
+        const items = todaysSchedule.filter(s => s.time === item.time && !s.taken);
+        setAlarmingItems(items);
+        setAlarmingPlanId(planId);
       } catch {}
     });
     return () => { listenerPromise.then(h => h.remove()); };
-  }, [todaysSchedule, alarmingScheduleId]);
+  }, [todaysSchedule, alarmingItems]);
 
   // Cerca il primo farmaco scaduto nelle ultime 2 ore, non assunto e non in snooze
   const findOverdueMed = () => {
-    if (alarmingScheduleId) return null;
+    if (alarmingItems.length > 0) return null;
     const now = new Date();
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     return todaysSchedule.find(item => {
@@ -274,7 +294,11 @@ export default function App() {
     if (initialAlarmCheckedRef.current || todaysSchedule.length === 0) return;
     initialAlarmCheckedRef.current = true;
     const overdue = findOverdueMed();
-    if (overdue) setAlarmingScheduleId(overdue.id);
+    if (overdue) {
+      const items = todaysSchedule.filter(s => s.time === overdue.time && !s.taken);
+      setAlarmingItems(items);
+      setAlarmingPlanId(overdue.planId);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysSchedule]);
 
@@ -287,9 +311,15 @@ export default function App() {
     const bridge = (window as any).AndroidBridge;
     if (!bridge?.scheduleNextAlarm) return;
     const now = Date.now();
+    // Raggruppa per orario: schedula UN SOLO allarme per fascia (primo planId come rappresentativo).
+    // Quando scatta, React trova tutti i farmaci a quell'orario e li mostra insieme.
+    const scheduledTimes = new Set<string>();
     todaysSchedule
       .filter(item => !item.taken)
+      .sort((a, b) => a.time.localeCompare(b.time) || a.planId.localeCompare(b.planId))
       .forEach(item => {
+        if (scheduledTimes.has(item.time)) return;
+        scheduledTimes.add(item.time);
         const [h, m] = item.time.split(':').map(Number);
         const due = new Date();
         due.setHours(h, m, 0, 0);
@@ -316,11 +346,13 @@ export default function App() {
             }).catch(() => {});
           }
         } catch {}
-        setAlarmingScheduleId(overdue.id);
+        const items = todaysSchedule.filter(s => s.time === overdue.time && !s.taken);
+        setAlarmingItems(items);
+        setAlarmingPlanId(overdue.planId);
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [todaysSchedule, alarmingScheduleId, medications]);
+  }, [todaysSchedule, alarmingItems, medications]);
 
   // Handlers
   const handleAddMedication = async (name: string, boxFile?: File, pillFile?: File) => {
@@ -360,23 +392,30 @@ export default function App() {
     }
   };
 
-  const handleSnooze = (planId: string, minutes: number) => {
+  const handleSnooze = (minutes: number) => {
     const snoozeUntil = Date.now() + minutes * 60 * 1000;
-    // Aggiorna snoozeMap (pulizia entries scadute)
     const now = Date.now();
     const updated: Record<string, number> = {};
-    Object.entries(snoozeMap).forEach(([id, until]) => { if (until > now) updated[id] = until; });
-    updated[planId] = snoozeUntil;
+    Object.entries(snoozeMap).forEach(([id, until]: [string, number]) => { if (until > now) updated[id] = until; });
+    // Rimanda tutti i farmaci del gruppo (stesso orario)
+    alarmingItems.forEach(item => { updated[item.planId] = snoozeUntil; });
     setSnoozeMap(updated);
     localStorage.setItem('mf_snooze', JSON.stringify(updated));
-    // Chiude il modal subito, indipendentemente dal bridge Android
-    setAlarmingScheduleId(null);
+    setAlarmingItems([]);
+    setAlarmingPlanId(null);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const bridge = (window as any).AndroidBridge;
-      bridge?.stopAlarmSound?.();           // ferma la suoneria nativa
-      bridge?.scheduleSnoozeAlarm?.(planId, minutes * 60 * 1000); // schedula snooze
+      bridge?.stopAlarmSound?.();
+      if (alarmingPlanId) bridge?.scheduleSnoozeAlarm?.(alarmingPlanId, minutes * 60 * 1000);
     } catch { /* bridge non disponibile (browser/iOS) */ }
+  };
+
+  const handleConfirmAll = () => {
+    try { (window as any).AndroidBridge?.stopAlarmSound?.(); } catch { /* noop */ }
+    setAlarmingItems([]);
+    setAlarmingPlanId(null);
+    setToastMessage(alarmingItems.length > 1 ? 'Tutti i farmaci registrati, Grazie' : 'Assunzione del farmaco registrata, Grazie');
   };
 
   const getMedicationName = (id: string) => medications.find(m => m.id === id)?.name || 'Sconosciuto';
@@ -403,8 +442,6 @@ export default function App() {
     <Appointments appointments={appointments} onAddAppointment={handleAddAppointment} onClose={() => setCurrentView('home')} />
   );
 
-  const alarmingSchedule = todaysSchedule.find(item => item.id === alarmingScheduleId);
-  const alarmingMedication = alarmingSchedule ? medications.find(m => m.id === alarmingSchedule.medicationId) : undefined;
   const viewingSchedule = todaysSchedule.find(item => item.id === viewingScheduleId);
   const viewingMedication = viewingSchedule ? medications.find(m => m.id === viewingSchedule.medicationId) : undefined;
 
@@ -454,16 +491,13 @@ export default function App() {
           </div>
         </div>
       )}
-      {alarmingSchedule && alarmingMedication && (
+      {alarmingItems.length > 0 && (
         <AlarmModal
-          scheduleItem={alarmingSchedule}
-          medication={alarmingMedication}
-          onConfirm={() => {
-            try { (window as any).AndroidBridge?.stopAlarmSound?.(); } catch { /* noop */ }
-            handleToggleTaken(alarmingSchedule.id);
-            setAlarmingScheduleId(null);
-          }}
-          onSnooze={(minutes) => handleSnooze(alarmingSchedule.planId, minutes)}
+          scheduleItems={alarmingItems}
+          medications={medications}
+          onConfirmOne={(id) => handleToggleTaken(id)}
+          onConfirmAll={handleConfirmAll}
+          onSnooze={handleSnooze}
         />
       )}
       {viewingSchedule && viewingMedication && (
