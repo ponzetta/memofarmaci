@@ -1,0 +1,9 @@
+First release of MemoFarmaci.
+
+• Reliable medication alarms even with screen off
+• Therapy plan management with medication photos
+• Single dialog for multiple medications at the same time
+• Missed dose alerts via e-mail and Telegram
+• Medical appointment calendar
+• Side effect diary
+• Sign in with Google and Facebook

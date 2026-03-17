@@ -8,6 +8,7 @@ coverage/
 !.env.example
 # credenziali e file sensibili
 file/firebase.json
+fastlane/google-play-key.json
 firebase.jpg
 supabase/.temp/
 file/Nuovo Documento di testo.txt

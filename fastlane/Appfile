@@ -1,0 +1,2 @@
+json_key_file("fastlane/google-play-key.json")  # Chiave API Google Play (Service Account)
+package_name("it.memofarmaci.app")

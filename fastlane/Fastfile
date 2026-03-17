@@ -1,0 +1,45 @@
+default_platform(:android)
+
+platform :android do
+
+  # ── Upload solo metadati e screenshot (senza APK/AAB) ──────────────────────
+  lane :metadata do
+    upload_to_play_store(
+      track:                  "production",
+      skip_upload_apk:        true,
+      skip_upload_aab:        true,
+      skip_upload_screenshots: false,
+      skip_upload_images:     false,
+    )
+  end
+
+  # ── Upload in Internal Testing (AAB già buildato in android/) ──────────────
+  lane :internal do
+    upload_to_play_store(
+      track:           "internal",
+      aab:             "android/app/build/outputs/bundle/release/app-release.aab",
+      skip_upload_apk: true,
+    )
+  end
+
+  # ── Promuovi da Internal a Beta ────────────────────────────────────────────
+  lane :promote_beta do
+    upload_to_play_store(
+      track:        "internal",
+      track_promote_to: "beta",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+  end
+
+  # ── Promuovi da Beta a Production ─────────────────────────────────────────
+  lane :promote_production do
+    upload_to_play_store(
+      track:        "beta",
+      track_promote_to: "production",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+  end
+
+end

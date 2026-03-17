@@ -1,0 +1,43 @@
+MemoFarmaci è l'app di promemoria farmaci pensata per chi segue terapie regolari o assiste un familiare. Grazie ad allarmi nativi Android (garantiti anche con schermo spento e in modalità risparmio energetico), non dimenticherai mai più una dose.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔔 ALLARMI AFFIDABILI
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Allarmi basati su AlarmManager (stesso meccanismo delle sveglie di sistema), che funzionano anche con schermo spento, in Doze mode e con la modalità risparmio energetico attiva
+• Suoneria dell'allarme che bypassa il silenzioso
+• Vibrazione e notifica a schermo intero per non perdere nessun promemoria
+• Snooze configurabile: posticipa di 5, 15 o 30 minuti
+• Quando hai più farmaci allo stesso orario, una sola dialog mostra tutti i farmaci da assumere
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+💊 GESTIONE PIANI TERAPEUTICI
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Crea piani per ogni farmaco con orario, dosaggio e frequenza (giornaliera o a giorni alterni)
+• Fotografa la scatola e la pillola per riconoscimento visivo immediato
+• Visualizza i farmaci del giorno ordinati per orario
+• Conferma l'assunzione con un tocco direttamente dalla notifica o dalla schermata principale
+• Storico completo delle assunzioni con filtri per data e farmaco
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+👨‍👩‍👧 CAREGIVER E AVVISI MANCATA ASSUNZIONE
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Configura un caregiver (nome, telefono, email) che riceve automaticamente avvisi in caso di mancata assunzione
+• Notifiche via e-mail e bot Telegram sia per il paziente sia per il caregiver
+• Personalizza la soglia di allarme (ore di ritardo accettabili prima di inviare l'avviso)
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+📅 APPUNTAMENTI E EFFETTI COLLATERALI
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Agenda appuntamenti medici con promemoria 1 ora prima della visita
+• Diario degli effetti collaterali collegato al singolo farmaco
+• Cronologia completa per condividere le informazioni con il medico
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 PRIVACY E SICUREZZA
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Accesso con Google o Facebook tramite autenticazione sicura
+• Tutti i dati sono sincronizzati e cifrati su cloud (Supabase/PostgreSQL)
+• Nessun dato venduto a terzi; i dati sanitari rimangono tuoi
+• Funziona su qualsiasi dispositivo: i dati sono sempre aggiornati
+
+MemoFarmaci è lo strumento ideale per anziani, pazienti con terapie croniche e caregiver che desiderano la certezza che ogni dose venga presa al momento giusto.

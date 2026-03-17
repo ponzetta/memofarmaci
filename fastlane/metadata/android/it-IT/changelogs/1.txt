@@ -1,0 +1,9 @@
+Prima versione di MemoFarmaci.
+
+• Allarmi farmaci affidabili anche con schermo spento
+• Gestione piani terapeutici con foto farmaco
+• Dialog unica per farmaci multipli allo stesso orario
+• Avvisi mancata assunzione via e-mail e Telegram
+• Agenda appuntamenti medici
+• Diario effetti collaterali
+• Login con Google e Facebook

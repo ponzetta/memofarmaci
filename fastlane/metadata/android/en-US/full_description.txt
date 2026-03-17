@@ -1,0 +1,43 @@
+MemoFarmaci is the medication reminder app designed for patients on regular therapies and their caregivers. Thanks to native Android alarms (guaranteed even with the screen off and in battery saver mode), you will never miss a dose again.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔔 RELIABLE ALARMS
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Alarms powered by AlarmManager (same engine as system clock alarms), working even with screen off, Doze mode, and battery optimization active
+• Alarm ringtone that overrides silent mode
+• Vibration and full-screen notification so you never miss a reminder
+• Configurable snooze: delay by 5, 15, or 30 minutes
+• When you have multiple medications at the same time, a single dialog lists all of them at once
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+💊 THERAPY PLAN MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Create plans for each medication with time, dosage, and frequency (daily or every other day)
+• Photograph the box and pill for instant visual recognition
+• View today's medications sorted by time
+• Confirm intake with a single tap from the notification or home screen
+• Complete intake history with date and medication filters
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+👨‍👩‍👧 CAREGIVER & MISSED DOSE ALERTS
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Set up a caregiver (name, phone, email) who automatically receives alerts for missed doses
+• Notifications via e-mail and Telegram bot for both patient and caregiver
+• Customizable alert threshold (how many hours of delay before sending the alert)
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+📅 APPOINTMENTS & SIDE EFFECTS
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Medical appointment calendar with 1-hour reminder before each visit
+• Side effect diary linked to individual medications
+• Full history to share with your doctor
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 PRIVACY & SECURITY
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Sign in with Google or Facebook via secure authentication
+• All data synchronized and encrypted in the cloud (Supabase/PostgreSQL)
+• No data sold to third parties; your health data remains yours
+• Works across all your devices, always up to date
+
+MemoFarmaci is the ideal tool for elderly patients, people on chronic therapies, and caregivers who need the certainty that every dose is taken on time.
